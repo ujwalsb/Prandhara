@@ -4,7 +4,18 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logoutUser } from '../store/slices/authSlice';
 import { alertApi } from '../api/alerts';
 import ThemeToggle from './ThemeToggle';
-import { FiMenu, FiX, FiBell, FiPackage, FiShoppingCart, FiGrid, FiFileText, FiUsers, FiDollarSign, FiBarChart2, FiSettings, FiLogOut, FiHome, FiMessageSquare, FiBookOpen, FiInfo, FiMail, FiClock } from 'react-icons/fi';
+import { FiMenu, FiX, FiBell, FiPackage, FiShoppingCart, FiGrid, FiFileText, FiUsers, FiDollarSign, FiBarChart2, FiSettings, FiLogOut, FiHome, FiMessageSquare, FiBookOpen, FiInfo, FiMail, FiClock, FiShoppingBag, FiTrendingUp } from 'react-icons/fi';
+
+const ALERT_NAV_PATHS = {
+  low_stock: '/admin/products',
+  expiry: '/admin/products',
+  new_order: '/admin/orders',
+  missing_customer_id: '/admin/customers',
+  new_feedback: '/admin/feedback',
+  payment_pending: '/admin/orders',
+  preorder_created: '/admin/pre-orders',
+  system: '/admin/alerts',
+};
 
 const Layout = () => {
   const dispatch = useDispatch();
@@ -22,14 +33,15 @@ const Layout = () => {
   }, []);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const isManager = user?.role === 'manager';
 
   useEffect(() => {
-    if (isAuthenticated && isAdmin) {
+    if (isAuthenticated && (isAdmin || isManager)) {
       fetchAlerts();
       const interval = setInterval(fetchAlerts, 30000);
       return () => clearInterval(interval);
     }
-  }, [isAuthenticated, isAdmin]);
+  }, [isAuthenticated, isAdmin, isManager]);
 
   // Auto-close after 5 seconds
   useEffect(() => {
@@ -96,20 +108,27 @@ const Layout = () => {
     { to: '/about', label: 'About', icon: FiInfo, public: true },
   ];
 
-  const adminLinks = [
-    { to: '/admin', label: 'Dashboard', icon: FiBarChart2 },
-    { to: '/admin/earnings', label: 'Earnings', icon: FiDollarSign },
-    { to: '/admin/pos', label: 'POS Billing', icon: FiDollarSign },
-    { to: '/admin/pre-orders', label: 'Pre-Orders', icon: FiClock },
-    { to: '/admin/products', label: 'Products', icon: FiPackage },
-    { to: '/admin/orders', label: 'Orders', icon: FiFileText },
-    { to: '/admin/dealers', label: 'Dealers', icon: FiUsers },
-    { to: '/admin/customers', label: 'Customers', icon: FiUsers },
-    { to: '/admin/categories', label: 'Categories', icon: FiGrid },
-    { to: '/admin/blogs', label: 'Blogs', icon: FiBookOpen },
-    { to: '/admin/feedback', label: 'Feedback', icon: FiMessageSquare },
-    { to: '/admin/alerts', label: 'Alerts', icon: FiBell },
-  ];
+  const adminLinks = isManager
+    ? [
+        { to: '/admin/pos', label: 'POS Billing', icon: FiDollarSign },
+        { to: '/admin/pre-orders', label: 'Pre-Orders', icon: FiClock },
+      ]
+    : [
+        { to: '/admin', label: 'Dashboard', icon: FiBarChart2 },
+        { to: '/admin/earnings', label: 'Earnings', icon: FiDollarSign },
+        { to: '/admin/pos', label: 'POS Billing', icon: FiDollarSign },
+        { to: '/admin/pre-orders', label: 'Pre-Orders', icon: FiClock },
+        { to: '/admin/products', label: 'Products', icon: FiPackage },
+        { to: '/admin/orders', label: 'Orders', icon: FiFileText },
+        { to: '/admin/fund-requests', label: 'Fund Requests', icon: FiTrendingUp },
+        { to: '/admin/dealers', label: 'Dealers', icon: FiUsers },
+        { to: '/admin/customers', label: 'Customers', icon: FiUsers },
+        { to: '/admin/categories', label: 'Categories', icon: FiGrid },
+        { to: '/admin/blogs', label: 'Blogs', icon: FiBookOpen },
+        { to: '/admin/feedback', label: 'Feedback', icon: FiMessageSquare },
+        { to: '/admin/alerts', label: 'Alerts', icon: FiBell },
+        { to: '/admin/managers', label: 'Managers', icon: FiUsers },
+      ];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -203,9 +222,10 @@ const Layout = () => {
                                   ),
                                   unreadCount: Math.max(0, prev.unreadCount - (alert.isRead ? 0 : 1)),
                                 }));
-                                if (alert.type === 'preorder_created') {
+                                const path = ALERT_NAV_PATHS[alert.type];
+                                if (path) {
                                   setShowAlerts(false);
-                                  navigate('/admin/pre-orders');
+                                  navigate(path);
                                 }
                               }}
                             >
@@ -238,6 +258,25 @@ const Layout = () => {
 
               {isAuthenticated && (
                 <>
+                  {user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'manager' ? (
+                    <Link
+                      to="/admin/pos"
+                      className={`text-sm font-medium transition-colors ${
+                        isActive('/admin/pos') ? 'text-emerald-600' : 'text-gray-600 hover:text-emerald-600'
+                      }`}
+                    >
+                      POS Billing
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/my-orders"
+                      className={`text-sm font-medium transition-colors ${
+                        isActive('/my-orders') ? 'text-emerald-600' : 'text-gray-600 hover:text-emerald-600'
+                      }`}
+                    >
+                      My Orders
+                    </Link>
+                  )}
                   {(user?.role === 'admin' || user?.role === 'superadmin') && (
                     <Link
                       to="/admin"
@@ -332,6 +371,25 @@ const Layout = () => {
               </Link>
               {isAuthenticated && (
                 <>
+                  {user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'manager' ? (
+                    <Link
+                      to="/admin/pos"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                    >
+                      <FiDollarSign className="w-4 h-4" />
+                      POS Billing
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/my-orders"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                    >
+                      <FiShoppingBag className="w-4 h-4" />
+                      My Orders
+                    </Link>
+                  )}
                   {(user?.role === 'admin' || user?.role === 'superadmin') && (
                     <Link
                       to="/admin"
@@ -387,7 +445,7 @@ const Layout = () => {
       </nav>
 
       {/* Admin Sidebar for admin pages */}
-      {isAuthenticated && (user?.role === 'admin' || user?.role === 'superadmin') && location.pathname.startsWith('/admin') && (
+      {isAuthenticated && (user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'manager') && location.pathname.startsWith('/admin') && (
         <div className="flex">
           <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-4rem)] p-4">
             <div className="space-y-1">
@@ -415,7 +473,7 @@ const Layout = () => {
       )}
 
       {/* Regular layout (non-admin pages) */}
-      {(!isAuthenticated || (user?.role !== 'admin' && user?.role !== 'superadmin') || !location.pathname.startsWith('/admin')) && (
+      {(!isAuthenticated || (user?.role !== 'admin' && user?.role !== 'superadmin' && user?.role !== 'manager') || !location.pathname.startsWith('/admin')) && (
         <main className="flex-1">
           <Outlet />
         </main>
@@ -443,9 +501,9 @@ const Layout = () => {
             <div>
               <h4 className="font-semibold text-white mb-3">Contact</h4>
               <ul className="space-y-2 text-sm">
-                <li>📞 +91 98765 43210</li>
-                <li>📧 info@prandhara.com</li>
-                <li>📍 123, Medical Complex, Main Road</li>
+                <li>📞 +91 9028 406729</li>
+                <li>📧 prandhar11@gmail.com</li>
+                <li>📍 Grand Centrel Pune-Nashik Highway Chakan.</li>
               </ul>
             </div>
             <div>

@@ -45,12 +45,7 @@ const getCategory = async (req, res, next) => {
   }
 };
 
-// Helper to generate slug from name
-const generateSlug = (name) =>
-  name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
+const { generateSlug } = require('../utils/helpers');
 
 // @desc    Create category
 // @route   POST /api/categories
@@ -76,7 +71,7 @@ const updateCategory = async (req, res, next) => {
       data.slug = generateSlug(data.name);
     }
     const category = await Category.findByIdAndUpdate(req.params.id, data, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
     if (!category) return res.status(404).json({ message: 'Category not found' });

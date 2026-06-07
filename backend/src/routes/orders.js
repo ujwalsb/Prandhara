@@ -9,7 +9,7 @@ const router = express.Router();
 // Stats
 router.get('/stats', authenticate, authorize('admin', 'superadmin'), orderController.getOrderStats);
 router.get('/pending', authenticate, authorize('admin', 'superadmin'), orderController.getPendingOrders);
-router.get('/pre-orders', authenticate, authorize('admin', 'superadmin'), orderController.getPreOrders);
+router.get('/pre-orders', authenticate, authorize('admin', 'superadmin', 'manager'), orderController.getPreOrders);
 
 // POS order
 router.post(
@@ -54,10 +54,10 @@ router.post(
 router.put('/:id/shipping', authenticate, authorize('admin', 'superadmin'), orderController.updateShipping);
 
 // Confirm pre-order
-router.put('/:id/confirm', authenticate, authorize('admin', 'superadmin'), orderController.confirmPreOrder);
+router.put('/:id/confirm', authenticate, authorize('admin', 'superadmin', 'manager'), orderController.confirmPreOrder);
 
 // Update pre-order
-router.put('/:id/pre-order', authenticate, authorize('admin', 'superadmin'), orderController.updatePreOrder);
+router.put('/:id/pre-order', authenticate, authorize('admin', 'superadmin', 'manager'), orderController.updatePreOrder);
 
 // Check transaction ID uniqueness
 router.get('/check-transaction/:txnId', authenticate, orderController.checkTransactionId);

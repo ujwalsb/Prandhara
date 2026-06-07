@@ -26,7 +26,7 @@ const markAsRead = async (req, res, next) => {
     const alert = await Alert.findByIdAndUpdate(
       req.params.id,
       { isRead: true },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!alert) return res.status(404).json({ message: 'Alert not found' });
     res.json({ message: 'Alert marked as read', alert });

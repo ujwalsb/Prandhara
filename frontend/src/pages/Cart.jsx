@@ -51,7 +51,7 @@ const Cart = () => {
       <div className="min-h-[70vh] flex flex-col items-center justify-center px-4">
         <FiShoppingBag className="w-20 h-20 text-gray-300" />
         <h2 className="mt-6 text-2xl font-bold text-gray-900">Your Cart is Empty</h2>
-        <p className="mt-2 text-gray-500">Add medicines and healthcare products to get started.</p>
+        <p className="mt-2 text-gray-500">Add healthcare products to get started.</p>
         <Link
           to="/shop"
           className="mt-6 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-700 transition-all"

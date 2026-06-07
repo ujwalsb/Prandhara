@@ -4,7 +4,7 @@ const Alert = require('../models/Alert');
 const Dealer = require('../models/Dealer');
 const Customer = require('../models/Customer');
 const InventoryLog = require('../models/InventoryLog');
-const { paginate, generateInvoiceNumber, generatePDF } = require('../utils/helpers');
+const { paginate, generateInvoiceNumber } = require('../utils/helpers');
 const {
   sendOrderConfirmationEmail,
   sendPaymentConfirmationEmail,
@@ -193,6 +193,15 @@ const createPOSOrder = async (req, res, next) => {
       .slice(2, 5)
       .toUpperCase()}`;
 
+    // Calculate total paid and determine payment status
+    const totalPaid = (payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    let paymentStatus = 'pending';
+    if (totalPaid >= grandTotal) {
+      paymentStatus = 'paid';
+    } else if (totalPaid > 0 && totalPaid < grandTotal) {
+      paymentStatus = 'partial';
+    }
+
     const order = await Order.create({
       invoiceNumber,
       orderType: 'pos',
@@ -208,10 +217,28 @@ const createPOSOrder = async (req, res, next) => {
       discount: discount || 0,
       grandTotal,
       payments: payments || [],
-      paymentStatus: 'paid',
+      paymentStatus,
       notes,
       processedBy: req.user._id,
     });
+
+    // Create alert for partial/pending payment
+    if (paymentStatus === 'partial') {
+      const dueAmount = grandTotal - totalPaid;
+      await Alert.create({
+        type: 'payment_pending',
+        message: `Partial payment for order #${invoiceNumber} — ₹${dueAmount.toFixed(2)} still pending`,
+        severity: 'warning',
+        relatedTo: { model: 'Order', id: order._id },
+      });
+    } else if (paymentStatus === 'pending') {
+      await Alert.create({
+        type: 'payment_pending',
+        message: `Payment pending for order #${invoiceNumber} — ₹${grandTotal.toFixed(2)} due`,
+        severity: 'warning',
+        relatedTo: { model: 'Order', id: order._id },
+      });
+    }
 
     // Send POS order confirmation email
     const dealerName = req.body.dealerName || '';
@@ -326,7 +353,7 @@ const getOrders = async (req, res, next) => {
 
     const [orders, total] = await Promise.all([
       Order.find(filter)
-        .populate('dealer', 'name phone')
+        .populate('dealer', 'name phone gstNumber address')
         .populate('customers.customer', 'customerId name phone')
         .populate('processedBy', 'name')
         .sort({ createdAt: -1 })
@@ -364,10 +391,17 @@ const getOrder = async (req, res, next) => {
 const updateOrderStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
+    const updateFields = { status };
+    // Set status timestamps for order tracking
+    if (status === 'confirmed') updateFields.confirmedAt = new Date();
+    if (status === 'shipped') updateFields.shippedAt = new Date();
+    if (status === 'delivered') updateFields.deliveredAt = new Date();
+    if (status === 'cancelled' || status === 'rejected') updateFields.cancelledAt = new Date();
+
     const order = await Order.findByIdAndUpdate(
       req.params.id,
-      { status },
-      { new: true }
+      updateFields,
+      { returnDocument: 'after' }
     );
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
@@ -413,7 +447,7 @@ const updateOrderStatus = async (req, res, next) => {
 const getPendingOrders = async (req, res, next) => {
   try {
     const orders = await Order.find({ status: 'pending' })
-      .populate('dealer', 'name phone')
+      .populate('dealer', 'name phone gstNumber address')
       .populate('processedBy', 'name')
       .sort({ createdAt: -1 });
     res.json({ orders });
@@ -427,6 +461,9 @@ const getPendingOrders = async (req, res, next) => {
 const getMyOrders = async (req, res, next) => {
   try {
     const orders = await Order.find({ processedBy: req.user._id })
+      .populate('dealer', 'name phone address gstNumber')
+      .populate('customers.customer', 'customerId name phone')
+      .populate('processedBy', 'name')
       .sort({ createdAt: -1 });
     res.json({ orders });
   } catch (error) {
@@ -472,7 +509,7 @@ const getPreOrders = async (req, res, next) => {
 
     const [orders, total] = await Promise.all([
       Order.find(filter)
-        .populate('dealer', 'name phone')
+        .populate('dealer', 'name phone gstNumber address')
         .populate('customers.customer', 'customerId name phone')
         .populate('processedBy', 'name')
         .sort({ createdAt: -1 })
@@ -498,7 +535,28 @@ const confirmPreOrder = async (req, res, next) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
     if (order.status !== 'preorder') return res.status(400).json({ message: 'Order is not in pre-order status' });
 
+    // Validate payment — order must be fully paid
+    if (order.paymentStatus !== 'paid') {
+      const dueAmount = (order.grandTotal || 0) - ((order.payments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0));
+      return res.status(400).json({
+        message: `Cannot confirm pre-order #${order.invoiceNumber}: Payment is not complete. ₹${dueAmount.toFixed(2)} still due.`,
+        paymentStatus: order.paymentStatus,
+        dueAmount,
+      });
+    }
+
+    // Validate customer IDs — all customers must have a Customer ID
+    const missingIdCustomers = (order.customers || []).filter(c => !c.customerId && !c.customer?.customerId);
+    if (missingIdCustomers.length > 0) {
+      const names = missingIdCustomers.map(c => `"${c.customerName || c.customer?.name || 'Unknown'}"`).join(', ');
+      return res.status(400).json({
+        message: `Cannot confirm pre-order #${order.invoiceNumber}: Customer ID missing for ${names}. Please edit the pre-order to add Customer IDs first.`,
+        missingCustomers: missingIdCustomers,
+      });
+    }
+
     order.status = 'confirmed';
+    order.confirmedAt = new Date();
     await order.save();
 
     // Resolve any related preorder alerts
@@ -526,7 +584,7 @@ const confirmPreOrder = async (req, res, next) => {
 // @route   PUT /api/orders/:id/pre-order
 const updatePreOrder = async (req, res, next) => {
   try {
-    const { customers, discount, notes, dealerName, dealerPhone } = req.body;
+    const { customers, discount, notes, dealerName, dealerPhone, payments: newPayments } = req.body;
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: 'Order not found' });
     if (order.status !== 'preorder') return res.status(400).json({ message: 'Order is not in pre-order status' });
@@ -565,6 +623,38 @@ const updatePreOrder = async (req, res, next) => {
     if (notes !== undefined) order.notes = notes;
     if (dealerName !== undefined) order.dealerName = dealerName;
     if (dealerPhone !== undefined) order.dealerPhone = dealerPhone;
+
+    // Add new payments if provided (append to existing payments)
+    if (newPayments && newPayments.length > 0) {
+      // Validate each new payment has a method and amount
+      const validPayments = newPayments.filter(p => p.method && Number(p.amount) > 0);
+      if (validPayments.length > 0) {
+        order.payments = [
+          ...(order.payments || []),
+          ...validPayments.map(p => ({
+            method: p.method,
+            amount: Number(p.amount),
+            transactionId: p.transactionId || '',
+            reference: p.reference || '',
+          })),
+        ];
+
+        // Recalculate payment status
+        const totalPaid = order.payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        if (totalPaid >= order.grandTotal) {
+          order.paymentStatus = 'paid';
+          // Resolve payment_pending alerts
+          await Alert.updateMany(
+            { type: 'payment_pending', isResolved: false },
+            { isResolved: true }
+          );
+        } else if (totalPaid > 0) {
+          order.paymentStatus = 'partial';
+        } else {
+          order.paymentStatus = 'pending';
+        }
+      }
+    }
 
     await order.save();
 
@@ -622,23 +712,36 @@ const createWebOrder = async (req, res, next) => {
 
     const invoiceNumber = `WEB-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
+    const isPaid = payment?.method === 'razorpay' && razorpay?.razorpay_payment_id;
+    const customerId = customer.customerId || '';
+
+    // Build customer entry — look up existing customer if ID provided
+    const customerEntry = {
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      products: processedItems,
+      totalAmount: grandTotal || subtotal,
+    };
+    if (customerId) {
+      customerEntry.customerId = customerId;
+      const existingCustomer = await Customer.findOne({ customerId });
+      if (existingCustomer) {
+        customerEntry.customer = existingCustomer._id;
+        existingCustomer.totalOrders += 1;
+        await existingCustomer.save();
+      }
+    }
+
     const orderData = {
       invoiceNumber,
       orderType: 'online',
-      status: payment?.method === 'razorpay' && razorpay?.razorpay_payment_id ? 'confirmed' : 'pending',
-      customers: [
-        {
-          customerName: customer.name,
-          customerPhone: customer.phone,
-          products: processedItems,
-          totalAmount: grandTotal || subtotal,
-        },
-      ],
+      status: 'pending', // All online orders start as pending for admin confirmation
+      customers: [customerEntry],
       items: processedItems,
       subtotal: subtotal || processedItems.reduce((s, i) => s + i.sellingPrice * i.quantity, 0),
       totalGst: gst || 0,
       grandTotal: grandTotal || processedItems.reduce((s, i) => s + i.totalPrice, 0),
-      paymentStatus: payment?.method === 'razorpay' && razorpay?.razorpay_payment_id ? 'paid' : 'pending',
+      paymentStatus: isPaid ? 'paid' : 'pending',
       payments: payment
         ? [
             {
@@ -650,11 +753,9 @@ const createWebOrder = async (req, res, next) => {
           ]
         : [],
       prescription: prescription || '',
-      // Razorpay fields
       razorpayOrderId: razorpay?.razorpay_order_id || '',
       razorpayPaymentId: razorpay?.razorpay_payment_id || '',
       razorpaySignature: razorpay?.razorpay_signature || '',
-      // Shipping / Blue Dart
       shipping: {
         name: customer.name,
         phone: customer.phone,
@@ -663,59 +764,31 @@ const createWebOrder = async (req, res, next) => {
         state: customer.state || '',
         pincode: customer.pincode || '',
         courierPartner: 'Blue Dart',
-        shippingCost: grandTotal > 500 ? 0 : 50,
+        shippingCost: 499,
       },
       processedBy: req.user?._id,
     };
 
-    // Reduce stock for confirmed (paid) orders
-    if (orderData.status === 'confirmed') {
-      for (const item of processedItems) {
-        const product = await Product.findById(item.product);
-        const before = product.stockQuantity;
-        product.stockQuantity -= item.quantity;
-        product.totalSold = (product.totalSold || 0) + item.quantity;
-        await product.save();
-
-        // Check low stock
-        if (product.stockQuantity <= product.lowStockThreshold) {
-          await Alert.create({
-            type: 'low_stock',
-            message: `Low stock: ${product.name} (${product.stockQuantity} remaining)`,
-            severity: 'warning',
-            relatedTo: { model: 'Product', id: product._id },
-          });
-        }
-      }
-    }
+    // Do NOT reduce stock yet — stock is reduced when admin confirms the order
 
     const order = await Order.create(orderData);
 
-    // Alert for new order
+    // Alert for new pending order (admin needs to confirm)
     await Alert.create({
       type: 'new_order',
-      message: `New web order #${invoiceNumber} — ₹${(orderData.grandTotal || 0).toFixed(2)}`,
+      message: `New web order #${invoiceNumber} — ₹${(orderData.grandTotal || 0).toFixed(2)} (pending confirmation)`,
       severity: 'info',
       relatedTo: { model: 'Order', id: order._id },
     });
 
-    // Send order confirmation & payment emails for paid web orders
-    if (orderData.status === 'confirmed') {
-      sendOrderConfirmationEmail({
-        order,
-        customerName: customer.name,
-        customerEmail: customer.email || '',
-      }).catch((err) =>
-        logger.error('Failed to send order confirmation email', { error: err.message, orderId: order._id })
-      );
-      sendPaymentConfirmationEmail({
-        order,
-        customerName: customer.name,
-        customerEmail: customer.email || '',
-        paymentMethod: payment?.method || 'Online',
-      }).catch((err) =>
-        logger.error('Failed to send payment confirmation email', { error: err.message, orderId: order._id })
-      );
+    // If customer ID is missing, generate alert like POS does
+    if (!customerId) {
+      await Alert.create({
+        type: 'preorder_created',
+        message: `Order #${invoiceNumber} — Customer ID not provided, requires confirmation`,
+        severity: 'warning',
+        relatedTo: { model: 'Order', id: order._id },
+      });
     }
 
     res.status(201).json({ message: 'Order placed successfully', order });
@@ -737,15 +810,17 @@ const updateShipping = async (req, res, next) => {
 
     if (status === 'shipped') {
       updateFields.status = 'shipped';
+      updateFields.shippedAt = new Date();
       updateFields['shipping.shippedAt'] = new Date();
     }
 
     if (status === 'delivered') {
       updateFields.status = 'delivered';
+      updateFields.deliveredAt = new Date();
       updateFields['shipping.deliveredAt'] = new Date();
     }
 
-    const order = await Order.findByIdAndUpdate(req.params.id, updateFields, { new: true });
+    const order = await Order.findByIdAndUpdate(req.params.id, updateFields, { returnDocument: 'after' });
     if (!order) return res.status(404).json({ message: 'Order not found' });
 
     res.json({ message: 'Shipping updated', order });

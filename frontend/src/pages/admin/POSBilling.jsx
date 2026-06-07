@@ -59,7 +59,7 @@ const POSBilling = () => {
 
   const loadAllProducts = async () => {
     try {
-      const data = await productApi.getAll({ limit: 200 });
+      const data = await productApi.getAll({ limit: 1000 });
       setAllProducts(data.products || []);
     } catch {}
   };
@@ -108,13 +108,6 @@ const POSBilling = () => {
     }
   };
 
-  // Auto-fill single cash payment if amount is still the default ₹0
-  const autoFillPayment = () => {
-    if (payments.length === 1 && payments[0].method === 'cash' && grandTotal > 0 && payments[0].amount === 0) {
-      setPayments((prev) => [{ ...prev[0], amount: grandTotal }]);
-    }
-  };
-
   const addToCart = (product) => {
     setCartItems((prev) => {
       const existing = prev.find((item) => item.product === product._id);
@@ -143,7 +136,6 @@ const POSBilling = () => {
     });
     setShowSearch(false);
     setProductSearch('');
-    // Auto-fill handled in handlePlaceOrder via effectivePayments
   };
 
   const updateQuantity = (index, qty) => {
@@ -288,19 +280,6 @@ const POSBilling = () => {
       }
     }
 
-    // Compute effective payments — auto-fill single cash if still at ₹0
-    const effectivePayments = payments.length === 1 && payments[0].method === 'cash' && payments[0].amount === 0
-      ? [{ ...payments[0], amount: grandTotal }]
-      : payments;
-    const effectiveTotalPaid = effectivePayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-
-    if (effectiveTotalPaid < grandTotal) {
-      // Also trigger the UI update so the user sees the auto-filled amount
-      autoFillPayment();
-      toast.error('Payment is incomplete');
-      return;
-    }
-
     try {
       const payload = {
         dealer: dealer._id || undefined,
@@ -316,7 +295,7 @@ const POSBilling = () => {
           phone: c.phone,
           customerId: c.customerId || undefined,
         })),
-        payments: effectivePayments
+        payments: payments
           .filter((p) => Number(p.amount) > 0)
           .map((p) => ({
             method: p.method,
@@ -329,7 +308,16 @@ const POSBilling = () => {
 
       const res = await orderApi.createPOS(payload);
 
-      toast.success('Order placed successfully!');
+      // Show different messages based on payment status
+      const orderStatus = res.order?.paymentStatus;
+      if (orderStatus === 'partial') {
+        const due = (grandTotal - totalPaid).toFixed(2);
+        toast.success(`Order placed with partial payment of ₹${totalPaid.toFixed(2)}. ₹${due} still due.`);
+      } else if (orderStatus === 'pending') {
+        toast.success('Order placed. Payment is pending — no amount was received.');
+      } else {
+        toast.success('Order placed successfully!');
+      }
 
       // Warn about customers missing Customer ID
       const missingIdCustomers = customers.filter(c => !c.customerId);
@@ -381,11 +369,10 @@ const POSBilling = () => {
               </div>
             </div>
 
-            {/* Quick product grid */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 mb-4">
+            {/* Quick product grid - scrollable */}
+            <div className="max-h-80 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 mb-4 p-1">
               {allProducts
                 .filter((p) => !productCategory || p.category?._id === productCategory || p.category === productCategory)
-                .slice(0, 30)
                 .map((product) => (
                   <button
                     key={product._id}
@@ -821,6 +808,44 @@ const POSBilling = () => {
 
           {/* Summary */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            {/* Payment Warning Banner */}
+            {remainingBalance > 0 && (
+              <div className="mb-4 bg-red-50 border-2 border-red-300 rounded-xl p-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-red-600 text-lg">⚠</span>
+                  <div>
+                    <p className="text-sm font-bold text-red-700">Payment Not Complete</p>
+                    <p className="text-xs text-red-600 mt-0.5">
+                      {totalPaid === 0
+                        ? `No payment received yet. ₹${grandTotal.toFixed(2)} is due.`
+                        : `Only ₹${totalPaid.toFixed(2)} paid. ₹${remainingBalance.toFixed(2)} still due.`}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-[11px] text-red-500 mt-1.5 ml-7">
+                  This order will be placed as a <strong>Pre-Order</strong> and won't be confirmed until payment is complete.
+                </p>
+              </div>
+            )}
+
+            {/* Customer ID Warning Banner */}
+            {customers.some(c => !c.customerId) && (
+              <div className="mb-4 bg-amber-50 border border-amber-300 rounded-xl p-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-600 text-lg">⚠</span>
+                  <div>
+                    <p className="text-sm font-bold text-amber-700">Customer ID Required</p>
+                    <p className="text-xs text-amber-600 mt-0.5">
+                      {customers.filter(c => !c.customerId).map(c => `"${c.name}"`).join(', ')} {customers.filter(c => !c.customerId).length === 1 ? 'has' : 'have'} no Customer ID.
+                    </p>
+                  </div>
+                </div>
+                <p className="text-[11px] text-amber-500 mt-1.5 ml-7">
+                  Orders without Customer IDs remain in Pre-Order and cannot be confirmed until an ID is provided.
+                </p>
+              </div>
+            )}
+
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Summary</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -850,7 +875,7 @@ const POSBilling = () => {
                 <span className="text-gray-500">Paid</span>
                 <span className="font-medium text-green-600">₹{totalPaid.toFixed(2)}</span>
               </div>
-              <div className={`flex justify-between ${remainingBalance > 0 ? 'text-red-500' : 'text-green-600'}`}>
+              <div className={`flex justify-between ${remainingBalance > 0 ? 'text-red-500 font-bold' : 'text-green-600'}`}>
                 <span className="font-medium">{remainingBalance > 0 ? 'Balance Due' : 'Change'}</span>
                 <span className="font-bold">₹{Math.abs(remainingBalance).toFixed(2)}</span>
               </div>
@@ -859,7 +884,11 @@ const POSBilling = () => {
             <button
               onClick={handlePlaceOrder}
               disabled={cartItems.length === 0 || hasDuplicateTxn || hasCheckingTxn || isSubmitting}
-              className="w-full mt-5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className={`w-full mt-5 font-semibold py-3 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                remainingBalance > 0
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              }`}
             >
               {isSubmitting ? (
                 <><span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span> Checking...</>
@@ -867,6 +896,8 @@ const POSBilling = () => {
                 <>⚠ Fix duplicate TXN IDs</>
               ) : hasCheckingTxn ? (
                 <>⟳ Verifying IDs...</>
+              ) : remainingBalance > 0 ? (
+                <><span>⚠</span> Place Pre-Order (₹{remainingBalance.toFixed(2)} due)</>
               ) : (
                 'Place Order'
               )}

@@ -5,10 +5,9 @@ import { blogApi } from '../api/blogs';
 import {
   FiShoppingCart, FiStar, FiChevronRight, FiSearch, FiPackage,
   FiTruck, FiShield, FiRefreshCw, FiFeather, FiHeart,
-  FiChevronLeft, FiClock, FiAward,
+  FiChevronLeft, FiClock,
   FiCheckCircle, FiUsers, FiBookOpen, FiCalendar, FiDroplet,
-  FiWind, FiSun,
-  FiAperture,
+  FiSun,
 } from 'react-icons/fi';
 import { IoLeaf } from 'react-icons/io5';
 
@@ -27,7 +26,7 @@ const HERO_SLIDES = [
   },
   {
     tag: 'Pure & Potent Herbs',
-    title: "Nature's Pharmacy",
+    title: "Nature's",
     subtitle: '100% Natural Ingredients',
     desc: 'From Ashwagandha to Turmeric, we bring you the finest selection of authentic herbal supplements, certified and lab-tested for purity.',
     image: 'https://myriyansh.com/site/images/2.jpg',
@@ -45,30 +44,22 @@ const HERO_SLIDES = [
     tag: 'Expert Care, 24/7',
     title: 'Your Health Partner',
     subtitle: 'Always Here For You',
-    desc: 'Quality medicines, expert advice, and fast delivery. A complete healthcare experience — online and in-store.',
+    desc: 'Quality products, expert advice, and fast delivery. A complete healthcare experience — online and in-store.',
     image: 'https://myriyansh.com/site/images/7.jpg',
     accent: '#0284c7',
   },
 ];
 
-const WHY_CHOOSE_US = [
-  { icon: FiShield, title: 'Certified Quality', desc: 'All products are lab-tested and GMP certified for purity and potency.' },
-  { icon: FiTruck, title: 'Fast Delivery', desc: 'Free delivery on orders above ₹500. Same-day dispatch in select cities.' },
-  { icon: FiRefreshCw, title: 'Easy Returns', desc: '30-day hassle-free return policy. Your satisfaction is our priority.' },
-  { icon: FiUsers, title: 'Expert Support', desc: 'Consult with certified Ayurvedic practitioners for personalized guidance.' },
-];
-
 const FAQ_DATA = [
-  { q: 'How do I place an order online?', a: 'Simply browse our product catalog, add items to cart, and proceed to checkout. You can upload your prescription during checkout.' },
-  { q: 'Do I need a prescription to buy medicines?', a: 'Some medicines require a prescription. These are clearly marked on the product page. You can upload your prescription during checkout.' },
+  { q: 'How do I place an order online?', a: 'Simply browse our product catalog, add items to cart, and proceed to checkout.' },
   { q: 'What payment methods are accepted?', a: 'We accept Cash, UPI, Card, Credit, and Company billing.' },
-  { q: 'Can I track my order?', a: 'Yes! Once your order is confirmed, you can track its status from your account dashboard. We send updates via email too.' },
+  
 ];
 
 const TESTIMONIALS = [
-  { name: 'Dr. Sharma', role: 'Physician', text: 'Prandhara has transformed how I manage my clinic\'s pharmacy. The POS system is incredibly efficient.', rating: 5 },
+  { name: 'Dr. Sharma', role: 'Physician', text: 'Prandhara has transformed how I manage my clinic\'s  The POS system is incredibly efficient.', rating: 5 },
   { name: 'Rajesh Patel', role: 'Medical Store Owner', text: 'Best ERP solution for medical stores. Inventory management and alerts are game-changers.', rating: 5 },
-  { name: 'Priya Singh', role: 'Customer', text: 'Ordering medicines online is so convenient. Fast delivery and genuine products always!', rating: 5 },
+  { name: 'Priya Singh', role: 'Customer', text: 'Ordering riyansh products online is so convenient. Fast delivery and genuine products always!', rating: 5 },
   { name: 'Anita Verma', role: 'Wellness Coach', text: 'The Ayurvedic collection is outstanding. My clients love the quality and authenticity.', rating: 5 },
   { name: 'Dr. Krishnan', role: 'Ayurvedic Practitioner', text: 'Finally, a platform that bridges traditional Ayurveda with modern healthcare delivery. Brilliant!', rating: 5 },
 ];
@@ -106,27 +97,7 @@ const AYURVEDIC_BENEFITS = [
     color: 'amber',
     bgGlow: 'rgba(245,158,11,0.12)',
   },
-  {
-    icon: FiAperture,
-    title: 'Ayurvedic Formula',
-    desc: 'Expertly crafted following ancient Ayurvedic texts. Each recipe is formulated by certified Vaidyas with 30+ years of experience.',
-    color: 'violet',
-    bgGlow: 'rgba(139,92,246,0.12)',
-  },
-  {
-    icon: FiFeather,
-    title: 'Fresh Ingredients',
-    desc: 'Sourced daily from local farms. Our ingredients are harvested at peak potency and processed within 24 hours.',
-    color: 'green',
-    bgGlow: 'rgba(34,197,94,0.12)',
-  },
-  {
-    icon: FiAward,
-    title: 'Doctor Recommended',
-    desc: 'Trusted by 500+ Ayurvedic practitioners and recommended by doctors across India for holistic wellness.',
-    color: 'rose',
-    bgGlow: 'rgba(244,63,94,0.12)',
-  },
+
 ];
 
 /* ===================================================================
@@ -235,7 +206,7 @@ const ProductCard = memo(({ product }) => (
 
 
 /* ===================================================================
-   Floating Leaf SVG
+   Inline SVG Leaf Icon — optimized as a pure function
    =================================================================== */
 
 const LeafSVG = memo(({ className, color = '#059669', size = 24, style = {} }) => (
@@ -273,57 +244,6 @@ const ScrollIndicator = () => (
     </div>
   </div>
 );
-
-/* ===================================================================
-   Herbal Particle
-   =================================================================== */
-
-const HerbalParticle = memo(({ index, total = 20 }) => {
-  const angle = (index / total) * 360;
-  const radius = 40 + Math.random() * 30;
-  const x = 50 + Math.cos((angle * Math.PI) / 180) * radius;
-  const y = 50 + Math.sin((angle * Math.PI) / 180) * radius;
-  const size = 2 + Math.random() * 4;
-  const delay = Math.random() * 5;
-  const duration = 5 + Math.random() * 4;
-  const animClass = index % 2 === 0 ? 'animate-float-particle' : 'animate-float-particle-2';
-
-  return (
-    <div
-      className={`absolute rounded-full ${animClass}`}
-      style={{
-        left: `${x}%`,
-        top: `${y}%`,
-        width: size,
-        height: size,
-        backgroundColor: `hsla(${120 + index * 15}, 60%, 50%, ${0.3 + Math.random() * 0.4})`,
-        animationDelay: `${delay}s`,
-        animationDuration: `${duration}s`,
-        pointerEvents: 'none',
-      }}
-    />
-  );
-});
-
-/* ===================================================================
-   Sunlight Ray
-   =================================================================== */
-
-const SunlightRay = memo(({ index, total = 6 }) => {
-  const angle = (index / total) * 180 - 45;
-  const animClass = index % 2 === 0 ? 'animate-sunlight-ray' : 'animate-sunlight-ray-2';
-
-  return (
-    <div
-      className={`absolute top-0 left-1/2 -translate-x-1/2 w-[200%] h-[200%] pointer-events-none ${animClass}`}
-      style={{
-        background: `linear-gradient(${angle}deg, transparent 0%, rgba(251,191,36,0.06) 30%, transparent 60%, rgba(251,191,36,0.03) 80%, transparent 100%)`,
-        transformOrigin: '50% 0%',
-        animationDelay: `${index * 0.8}s`,
-      }}
-    />
-  );
-});
 
 /* ===================================================================
    Floating Herb Label
@@ -721,8 +641,8 @@ const Home = () => {
       {/* ===================================================================
            SECTION 1 — AYURVEDIC HERO
            =================================================================== */}
-      <section ref={heroParallaxRef} className="relative min-h-screen flex flex-col lg:flex-row overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-900 to-amber-900 parallax-section">
-        {/* Background image with CSS-only parallax */}
+      <section ref={heroParallaxRef} className="relative min-h-screen flex flex-col lg:flex-row overflow-hidden bg-gradient-to-br from-emerald-950 via-emerald-900 to-amber-900">
+        {/* Background image — render only the active slide for performance */}
         <div className="absolute inset-0 parallax-layer" style={{ transform: 'translateZ(0)' }}>
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40"
@@ -732,6 +652,7 @@ const Home = () => {
               filter: 'blur(1px)',
             }}
           />
+          {/* Only render exiting slide if crossfading — remove after animation */}
           {exitingIdx !== null && (
             <div
               className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-40 animate-crossfade-out"
@@ -747,14 +668,9 @@ const Home = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/60 via-transparent to-transparent" />
 
           {/* Animated sunlight rays - reduced for performance */}
-          {Array.from({ length: 4 }).map((_, i) => (
-            <SunlightRay key={i} index={i} total={4} />
-          ))}
 
-          {/* Floating herbal particles - reduced for performance */}
-          {Array.from({ length: 6 }).map((_, i) => (
-            <HerbalParticle key={i} index={i} total={6} />
-          ))}
+
+
 
           {/* Background swaying herbs (silhouettes) */}
           <div className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none overflow-hidden">
@@ -766,9 +682,9 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Floating herb labels in background */}
-        <div className="absolute inset-0 pointer-events-none z-10">
-          {FLOATING_HERBS.map((herb, i) => (
+        {/* Floating herb labels — only render on larger screens for performance */}
+        <div className="absolute inset-0 pointer-events-none z-10 hidden lg:block">
+          {FLOATING_HERBS.slice(0, 3).map((herb, i) => (
             <FloatingHerbLabel key={i} herb={herb} index={i} />
           ))}
         </div>
@@ -1003,76 +919,29 @@ const Home = () => {
                 for Modern Wellness
               </h2>
 
-              {/* Company Story */}
+              
+
+              {/* Tagline */}
+              <div className="mb-4">
+                <p className="text-xl sm:text-2xl font-semibold text-emerald-700 italic">
+                  Prandhara – The Essence of Healthy Living.
+                </p>
+              </div>
+
+              {/* Prandhara Story */}
               <div className="space-y-4 mb-8">
                 <p className="text-gray-600 leading-relaxed">
-                  Founded in 1998, Prandhara has been at the forefront of bringing authentic Ayurvedic 
-                  remedies to households across India. What started as a small family clinic has grown 
-                  into a trusted name in holistic healthcare, serving over 50,000 satisfied customers.
+                  Prandhara, established in 2022, is dedicated to promoting health and wellness through a range of Ayurvedic and herbal products. Inspired by the quality and wellness-focused approach of Riyansh products, Prandhara aims to provide natural solutions that support a healthier lifestyle.
                 </p>
-                <p className="text-gray-500 leading-relaxed text-sm">
-                  Our mission is simple — to make the healing power of nature accessible to everyone. 
-                  Every product is crafted following strict Ayurvedic principles, using organically grown 
-                  herbs sourced directly from local farmers. We believe in complete transparency, from 
-                  farm to bottle.
+                <p className="text-gray-600 leading-relaxed">
+                  The company focuses on offering carefully selected herbal, wellness, personal care, and health-support products designed to meet the needs of modern consumers. With a commitment to quality, authenticity, and customer satisfaction, Prandhara strives to make traditional Ayurvedic wisdom accessible to everyone.
+                </p>
+                <p className="text-gray-600 leading-relaxed">
+                  Driven by the vision of enhancing health and well-being, Prandhara continues to build trust among its customers by delivering reliable products and exceptional service while promoting a natural and holistic approach to everyday wellness.
                 </p>
               </div>
 
-              {/* Ayurveda Mission */}
-              <div className="bg-gradient-to-r from-emerald-50 to-emerald-50/50 rounded-xl p-5 sm:p-6 border border-emerald-100 mb-8">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                    <FiSun className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900 text-sm mb-1">Our Ayurveda Mission</h4>
-                    <p className="text-gray-500 text-sm leading-relaxed">
-                      "To harmonize traditional Ayurvedic knowledge with contemporary wellness needs, 
-                      creating products that nurture the body, mind, and spirit without compromise."
-                    </p>
-                  </div>
-                </div>
-              </div>
 
-              {/* Organic Production Details */}
-              <div className="grid grid-cols-2 gap-3 mb-8">
-                <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-gray-100">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                    <IoLeaf className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Sourcing</p>
-                    <p className="text-sm font-semibold text-gray-900">Organic Farms</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-gray-100">
-                  <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-                    <FiWind className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Processing</p>
-                    <p className="text-sm font-semibold text-gray-900">Cold-Pressed</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-gray-100">
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                    <FiDroplet className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Purity</p>
-                    <p className="text-sm font-semibold text-gray-900">Lab Tested</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 bg-white rounded-xl p-4 border border-gray-100">
-                  <div className="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
-                    <FiAward className="w-5 h-5 text-violet-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400">Certified</p>
-                    <p className="text-sm font-semibold text-gray-900">GMP & ISO</p>
-                  </div>
-                </div>
-              </div>
 
               {/* Animated Counters */}
               <div ref={aboutStatsRef} className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-5">
@@ -1080,7 +949,7 @@ const Home = () => {
                   { value: 50000, suffix: '+', label: 'Happy Customers', color: 'emerald' },
                   { value: 1000, suffix: '+', label: 'Products Sold', color: 'amber' },
                   { value: 200, suffix: '+', label: 'Herbal Ingredients', color: 'green' },
-                  { value: 25, suffix: '+', label: 'Years Experience', color: 'blue' },
+                  { value: 7, suffix: '+', label: 'Years Experience', color: 'blue' },
                 ].map((stat, i) => (
                   <div
                     key={i}
@@ -1332,32 +1201,7 @@ const Home = () => {
       </section>
 
 
-      {/* ===================================================================
-           WHY CHOOSE US
-           =================================================================== */}
-      <section className="py-20 sm:py-28 bg-gray-50/70">
-        <div className="mx-auto max-w-7xl px-6 sm:px-12 lg:px-16">
-          <div className="text-center mb-12 sm:mb-16">
-            <span className="inline-flex items-center gap-2 text-emerald-600 text-sm font-semibold mb-3 bg-emerald-50 px-4 py-1.5 rounded-full">
-              <FiAward className="w-4 h-4" /> Why Prandhara
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">Trusted by Thousands</h2>
-            <p className="text-gray-400 mt-3 max-w-xl mx-auto">We combine quality, reliability, and expertise to deliver the best healthcare experience</p>
-          </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {WHY_CHOOSE_US.map((item, i) => (
-              <div key={i} className="group bg-white rounded-2xl p-7 sm:p-8 border border-gray-100 hover:border-emerald-200 hover:shadow-lg hover:shadow-emerald-50/50 transition-all duration-500" style={{ animation: `reveal-up 0.5s ease-out ${i * 0.1}s both` }}>
-                <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center mb-5 group-hover:bg-emerald-100 group-hover:scale-110 transition-all duration-300">
-                  <item.icon className="w-6 h-6 text-emerald-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
 
       {/* ===================================================================

@@ -42,7 +42,6 @@ const customerSchema = new mongoose.Schema(
 );
 
 customerSchema.index({ phone: 1 });
-customerSchema.index({ customerId: 1 });
 // Performance indexes for common query patterns
 customerSchema.index({ createdAt: -1 });
 customerSchema.index({ totalSpent: -1 });

@@ -47,7 +47,7 @@ const getFeedback = async (req, res, next) => {
 // @route   PUT /api/feedback/:id/read
 const markFeedbackRead = async (req, res, next) => {
   try {
-    const feedback = await Feedback.findByIdAndUpdate(req.params.id, { isRead: true }, { new: true });
+    const feedback = await Feedback.findByIdAndUpdate(req.params.id, { isRead: true }, { returnDocument: 'after' });
     if (!feedback) return res.status(404).json({ message: 'Feedback not found' });
     res.json({ message: 'Feedback marked as read' });
   } catch (error) {

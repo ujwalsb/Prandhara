@@ -179,7 +179,7 @@ const Dashboard = () => {
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Medical store overview · {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            Prandhara store overview · {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
         <div className="flex items-center gap-3">

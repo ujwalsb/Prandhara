@@ -122,7 +122,6 @@ productSchema.post('findOneAndUpdate', async function (doc) {
 
 productSchema.index({ name: 'text', description: 'text' });
 productSchema.index({ barcode: 1 });
-productSchema.index({ expiryDate: 1 });
 productSchema.index({ category: 1, isActive: 1 });
 // Performance indexes for common query patterns
 productSchema.index({ totalSold: -1, isActive: 1 });

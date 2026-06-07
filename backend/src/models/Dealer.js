@@ -46,7 +46,6 @@ const dealerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-dealerSchema.index({ phone: 1 });
 dealerSchema.index({ name: 'text' });
 // Performance index for listing queries
 dealerSchema.index({ isActive: 1, createdAt: -1 });

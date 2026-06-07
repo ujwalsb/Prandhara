@@ -30,6 +30,5 @@ const cartSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-cartSchema.index({ user: 1 });
 
 module.exports = mongoose.model('Cart', cartSchema);

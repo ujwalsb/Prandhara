@@ -54,7 +54,7 @@ const syncCart = async (req, res, next) => {
           stock: item.stock || 0,
         })),
       },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, returnDocument: 'after', runValidators: true }
     ).populate('items.product', 'name sellingPrice mrp images stockQuantity isActive');
 
     res.json({ message: 'Cart synced', items: cart.items });

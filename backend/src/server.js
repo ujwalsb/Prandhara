@@ -33,6 +33,7 @@ const importRoutes = require('./routes/importData');
 const earningsRoutes = require('./routes/earnings');
 const monitoringRoutes = require('./routes/monitoring');
 const storeSettingsRoutes = require('./routes/storeSettings');
+const fundRequestRoutes = require('./routes/fundRequests');
 
 const app = express();
 
@@ -146,6 +147,7 @@ app.use('/api/import', importRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/earnings', earningsRoutes);
 app.use('/api/store-settings', storeSettingsRoutes);
+app.use('/api/fund-requests', fundRequestRoutes);
 
 // 404 handler
 app.use((_req, res) => {

@@ -5,6 +5,8 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    host: true,
+    allowedHosts: true,
     port: 5173,
     proxy: {
       '/api': {
@@ -18,6 +20,8 @@ export default defineConfig({
     },
   },
   build: {
+    target: 'es2020',
+    cssCodeSplit: true,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -29,5 +33,10 @@ export default defineConfig({
       },
     },
     chunkSizeWarningLimit: 600,
+    minify: 'esbuild',
+    sourcemap: false,
+  },
+  css: {
+    devSourcemap: false,
   },
 });

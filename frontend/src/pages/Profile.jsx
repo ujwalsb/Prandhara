@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { ordersApi } from '../api/orders';
-import { FiUser, FiPackage, FiSettings, FiLogOut, FiPhone, FiMail, FiMapPin, FiCalendar, FiChevronRight } from 'react-icons/fi';
+import { FiUser, FiPackage, FiSettings, FiLogOut, FiPhone, FiMail, FiMapPin, FiCalendar, FiChevronRight, FiExternalLink } from 'react-icons/fi';
 
 const Profile = () => {
   const { user } = useSelector((state) => state.auth);
@@ -119,7 +119,16 @@ const Profile = () => {
 
             {tab === 'orders' && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-lg font-bold text-gray-900">My Orders</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-gray-900">My Orders</h2>
+                  <Link
+                    to="/my-orders"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+                  >
+                    View All
+                    <FiExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
                 {loading ? (
                   <div className="mt-6 flex justify-center py-12">
                     <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent" />
@@ -134,7 +143,7 @@ const Profile = () => {
                   </div>
                 ) : (
                   <div className="mt-6 space-y-4">
-                    {orders.map((order) => (
+                    {orders.slice(0, 5).map((order) => (
                       <Link
                         key={order._id}
                         to={`/orders/${order._id}`}

@@ -156,7 +156,7 @@ const updateBlog = async (req, res, next) => {
     }
     
     const blog = await Blog.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
     if (!blog) return res.status(404).json({ message: 'Blog not found' });

@@ -81,7 +81,7 @@ const updateCustomer = async (req, res, next) => {
     }
 
     const customer = await Customer.findByIdAndUpdate(req.params.id, updates, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
     if (!customer) return res.status(404).json({ message: 'Customer not found' });

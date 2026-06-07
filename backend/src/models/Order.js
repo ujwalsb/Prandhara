@@ -130,11 +130,15 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
     },
+    // Status timestamps for order tracking timeline
+    confirmedAt: { type: Date },
+    shippedAt: { type: Date },
+    deliveredAt: { type: Date },
+    cancelledAt: { type: Date },
   },
   { timestamps: true }
 );
 
-orderSchema.index({ invoiceNumber: 1 });
 orderSchema.index({ status: 1, orderType: 1 });
 orderSchema.index({ createdAt: -1 });
 orderSchema.index({ dealer: 1 });

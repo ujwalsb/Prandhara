@@ -18,7 +18,7 @@ const AdminRoute = () => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (user?.role !== 'admin' && user?.role !== 'superadmin') {
+  if (user?.role !== 'admin' && user?.role !== 'superadmin' && user?.role !== 'manager') {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-4">
         <div className="max-w-md text-center">

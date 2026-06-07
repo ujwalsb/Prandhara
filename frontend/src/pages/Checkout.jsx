@@ -21,6 +21,7 @@ const Checkout = () => {
   const [form, setForm] = useState({
     name: '',
     phone: '',
+    customerId: '',
     address: '',
     city: '',
     state: '',
@@ -31,7 +32,7 @@ const Checkout = () => {
 
   const subtotal = cart.reduce((sum, item) => sum + (item.sellingPrice || item.mrp || 0) * (item.quantity || 1), 0);
   const gst = subtotal * 0.12;
-  const shippingCost = subtotal > 500 ? 0 : 50;
+  const shippingCost = 499;
   const total = subtotal + gst + shippingCost;
 
   useEffect(() => {
@@ -124,6 +125,7 @@ const Checkout = () => {
         customer: {
           name: form.name,
           phone: form.phone,
+          customerId: form.customerId,
           address: form.address,
           city: form.city,
           state: form.state,
@@ -154,7 +156,7 @@ const Checkout = () => {
       localStorage.removeItem('prandhara_cart');
       window.dispatchEvent(new Event('cartUpdated'));
       toast.success('Order placed successfully! 🎉');
-      navigate(`/orders/${order.order?._id || order._id}`);
+      navigate('/my-orders');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to place order');
     } finally {
@@ -223,9 +225,7 @@ const Checkout = () => {
                   <div className="text-xs text-blue-800">
                     <p className="font-semibold">Blue Dart Express Delivery</p>
                     <p className="text-blue-600">
-                      {shippingCost === 0
-                        ? 'FREE shipping on orders above ₹500'
-                        : `Shipping: ₹${shippingCost}`}
+                      Shipping: ₹{shippingCost}
                     </p>
                   </div>
                 </div>
@@ -297,6 +297,19 @@ const Checkout = () => {
                         maxLength={6}
                       />
                     </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Customer ID <span className="text-gray-400 font-normal">(optional — helps admin identify you)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.customerId}
+                      onChange={(e) => setForm((p) => ({ ...p, customerId: e.target.value }))}
+                      className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                      placeholder="e.g. CUST-001 or leave blank"
+                    />
                   </div>
 
                   <div>
@@ -425,7 +438,7 @@ const Checkout = () => {
                       <p className="text-sm text-gray-600">{[form.city, form.state, form.pincode].filter(Boolean).join(', ')}</p>
                     )}
                     <p className="text-xs text-gray-400 mt-1">
-                      {shippingCost === 0 ? '✓ Free Shipping' : `Shipping: ₹${shippingCost}`}
+                      Shipping: ₹{shippingCost}
                     </p>
                   </div>
 
@@ -524,9 +537,7 @@ const Checkout = () => {
                   <FiTruck className="w-3.5 h-3.5 text-blue-500" />
                   <span>Delivery (Blue Dart)</span>
                 </div>
-                <span className={shippingCost === 0 ? 'text-emerald-600 font-medium' : ''}>
-                  {shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}
-                </span>
+                <span className="text-gray-600">₹{shippingCost}</span>
               </div>
               <hr className="border-gray-200" />
               <div className="flex justify-between text-base font-bold text-gray-900">

@@ -53,7 +53,6 @@ const blogSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-blogSchema.index({ slug: 1 });
 blogSchema.index({ type: 1, isPublished: 1 });
 blogSchema.index({ tags: 1 });
 // Performance indexes for listing and filtering

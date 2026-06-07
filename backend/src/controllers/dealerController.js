@@ -68,7 +68,7 @@ const updateDealer = async (req, res, next) => {
     }
 
     const dealer = await Dealer.findByIdAndUpdate(req.params.id, updates, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
     if (!dealer) return res.status(404).json({ message: 'Dealer not found' });

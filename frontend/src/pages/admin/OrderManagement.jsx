@@ -3,7 +3,7 @@ import { orderApi } from '../../api/orders';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { clearRequestCache } from '../../api/client';
-import { FiEye, FiCheck, FiX, FiChevronLeft, FiChevronRight, FiFileText, FiPrinter, FiClock, FiSearch, FiTruck, FiSave, FiPackage, FiX as FiClose } from 'react-icons/fi';
+import { FiEye, FiCheck, FiX, FiChevronLeft, FiChevronRight, FiFileText, FiClock, FiSearch, FiTruck, FiSave, FiPrinter } from 'react-icons/fi';
 
 import { storeSettingsApi } from '../../api/storeSettings';
 
@@ -17,9 +17,6 @@ const OrderManagement = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [showPrintSlip, setShowPrintSlip] = useState(false);
-  const [storeInfo, setStoreInfo] = useState(null);
-  const [slipLoading, setSlipLoading] = useState(false);
 
   // Debounce search input before triggering API
   useEffect(() => {
@@ -66,21 +63,112 @@ const OrderManagement = () => {
     }
   };
 
-  const handlePrintSlip = async (order) => {
-    const targetOrder = order || selectedOrder;
-    if (!targetOrder) return;
-    if (order) setSelectedOrder(order);
-    setSlipLoading(true);
+  const handlePrint = async (order) => {
+    // Open window SYNCHRONOUSLY so browser allows popup
+    const printWin = window.open('', '_blank', 'width=400,height=600,menubar=no,toolbar=no,location=no,status=no');
+    const blocked = !printWin || printWin.closed;
+
+    // Fetch store settings
+    let store = null;
     try {
       const data = await storeSettingsApi.get();
-      setStoreInfo(data?.settings || null);
-    } catch {
-      setStoreInfo(null);
-    } finally {
-      setSlipLoading(false);
-      setShowPrintSlip(true);
-      setTimeout(() => window.print(), 400);
+      store = data?.settings || null;
+    } catch { /* use defaults */ }
+
+    if (blocked) {
+      toast.error('Please allow popups for this site to print.');
+      return;
     }
+
+    // Build HTML directly from data
+    const escapeHtml = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const fmt = (n) => `\u20B9${(n || 0).toLocaleString('en-IN')}`;
+    const dateStr = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+    const e = escapeHtml;
+    const items = order.items || order.products || [];
+
+    const html = `<!DOCTYPE html>
+<html><head><title>Print - ${e(order.invoiceNumber)}</title>
+<style>
+  @page { margin: 0; size: 80mm auto; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Courier New', Consolas, monospace; font-size: 11px; width: 80mm; margin: 0 auto; padding: 8px 6px; color: #000; background: #fff; line-height: 1.4; }
+  table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  th, td { padding: 3px 2px; text-align: left; border-bottom: 1px dashed #ddd; }
+  th { border-bottom: 1px dashed #999; font-weight: 700; }
+  .c { text-align: center; } .r { text-align: right; } .b { font-weight: 700; }
+  .bb { border-bottom: 1px dashed #999; } .bt { border-top: 1px dashed #999; }
+  .s  { font-size: 9px; color: #666; }
+  .mt1 { margin-top: 4px; } .mb1 { margin-bottom: 4px; } .mb2 { margin-bottom: 8px; }
+  .pt1 { padding-top: 4px; } .pb1 { padding-bottom: 4px; } .pb2 { padding-bottom: 8px; }
+  .flex { display: flex; justify-content: space-between; }
+  .i { font-style: italic; } .blk { display: block; } .ib { display: inline-block; }
+</style>
+</head><body>
+<div class="c bb pb2 mb2">
+  <h2 style="font-size:14px;">${e(store?.shopName) || 'Prandhara Pharmacy &amp; Healthcare'}</h2>
+  <p class="s mt1">${e(store?.shopAddress) || '123, Medical Complex, Main Road, City'}</p>
+  <p class="s">📞 ${e(store?.shopPhone) || '+91 98765 43210'}</p>
+  ${store?.shopGstin ? `<p class="s">GST: ${e(store.shopGstin)}</p>` : ''}
+</div>
+<div class="c mb2">
+  <h3 style="font-size:13px;font-weight:700;">INVOICE</h3>
+  <p class="s">#${e(order.invoiceNumber) || e(order._id?.slice(-8)?.toUpperCase()) || 'N/A'}</p>
+  <p class="s">Date: ${dateStr(order.createdAt)}</p>
+  <p class="s" style="font-size:8px;">${e(order.orderType || 'POS').toUpperCase()}</p>
+  <span class="ib s" style="background:#eee;padding:1px 6px;border-radius:2px;margin-top:2px;">${e(order.status) || ''}</span>
+</div>
+${order.dealerName ? `
+<div class="s bb pb1 mb1">
+  <p class="b">Supplier:</p>
+  <p>${e(order.dealerName)}</p>
+  ${order.dealerPhone ? `<p>Phone: ${e(order.dealerPhone)}</p>` : ''}
+</div>` : ''}
+${order.customers?.length ? `
+<div class="s bb pb1 mb1">
+  <p class="b">Customer(s):</p>
+  ${order.customers.map(c => `
+  <div${order.customers.length > 1 ? ' style="margin-top:4px;"' : ''}>
+    <p>${c.customerId || c.customer?.customerId ? `${e(c.customerId || c.customer?.customerId)} - ${e(c.customerName || c.customer?.name) || 'N/A'}` : e(c.customerName || c.customer?.name) || 'Walk-in'}</p>
+    ${c.customerPhone ? `<p>Phone: ${e(c.customerPhone)}</p>` : ''}
+  </div>`).join('')}
+</div>` : ''}
+<table class="mb2">
+  <thead><tr><th>#</th><th>Product</th><th class="c">Qty</th><th class="r">Rate</th><th class="r">Total</th></tr></thead>
+  <tbody>
+${items.map((item, idx) => {
+  const price = item.sellingPrice || item.price || 0;
+  const qty = item.quantity || 1;
+  const gst = item.gst || 0;
+  const total = item.totalPrice || (price * qty);
+  const batch = item.batchNumber;
+  const name = e(item.productName || item.name || item.product?.name) || 'N/A';
+  return `    <tr><td class="s">${idx + 1}</td><td>${name}<span class="blk s">${batch ? 'Batch: ' + e(batch) + ' | ' : ''}MRP: ${fmt(item.mrp || price)} | GST: ${gst}%</span></td><td class="c">${qty}</td><td class="r">${fmt(price)}</td><td class="r b">${fmt(total)}</td></tr>`;
+}).join('\n')}
+  </tbody>
+</table>
+<div class="bt pt1 s mb2">
+  <div class="flex"><span>Subtotal</span><span>${fmt(order.subtotal)}</span></div>
+  ${order.totalGst ? `<div class="flex"><span>GST</span><span>${fmt(order.totalGst)}</span></div>` : ''}
+  ${order.discount ? `<div class="flex" style="color:#dc2626;"><span>Discount</span><span>-${fmt(order.discount)}</span></div>` : ''}
+  <div class="flex b bt pt1 mt1" style="font-size:13px;"><span>Grand Total</span><span style="color:#059669;">${fmt(order.grandTotal)}</span></div>
+</div>
+${order.notes ? `<div class="s bb pb1 mb1"><p class="b">Notes:</p><p class="i">${e(order.notes)}</p></div>` : ''}
+${order.processedBy?.name ? `<div class="s bb pb1 mb1"><p class="b">Processed By:</p><p>${e(order.processedBy.name)}</p></div>` : ''}
+<div class="s bt pt1 mb2">
+  <p class="b mb1">Payment:</p>
+  ${order.payments?.length ? order.payments.map(p => `<div class="flex mb1"><span class="cp">${e(p.method)}${p.transactionId ? ` (ID: ${e(p.transactionId)})` : ''}</span><span>${fmt(p.amount)}</span></div>`).join('') : `<p>${e(order.payment?.method) || '—'}</p>`}
+  <p style="color:${order.paymentStatus === 'paid' ? '#16a34a' : '#ca8a04'};font-weight:600;">${order.paymentStatus === 'paid' ? '\u2713 Paid' : '\u23F3 Pending'}</p>
+</div>
+<div class="c s bt pt1">
+  <p class="i">${e(store?.footerMessage) || 'Thank you for your business!'}</p>
+  <p style="font-size:8px;margin-top:2px;color:#999;">Powered by Prandhara ERP</p>
+</div>
+<script>window.onload=function(){setTimeout(function(){window.print();window.close()},400)}</script>
+</body></html>`;
+
+    printWin.document.write(html);
+    printWin.document.close();
   };
 
   return (
@@ -93,12 +181,13 @@ const OrderManagement = () => {
           </div>
           <div className="flex items-center gap-2">
             <Link
-              to="/admin/pending-orders"
+              to="/admin/pre-orders"
               className="flex items-center gap-2 px-4 py-2.5 bg-orange-50 text-orange-700 border border-orange-200 rounded-lg text-sm font-medium hover:bg-orange-100 transition-colors"
             >
-              <FiClock className="w-4 h-4" /> Pending Orders
+              <FiClock className="w-4 h-4" /> Pre-Orders
             </Link>
             <button
+              type="button"
               onClick={() => loadOrders(true)}
               className="px-4 py-2.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
             >
@@ -137,7 +226,7 @@ const OrderManagement = () => {
           </select>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-[1.6fr_1fr] gap-6">
           {/* Orders List */}
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
@@ -214,10 +303,10 @@ const OrderManagement = () => {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1">
-                          <button onClick={(e) => { e.stopPropagation(); handlePrintSlip(order); }} className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Print Slip">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handlePrint(order); }} className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Print Invoice">
                             <FiPrinter className="w-4 h-4" />
                           </button>
-                          <button onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="View Details">
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedOrder(order); }} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="View Details">
                             <FiEye className="w-4 h-4" />
                           </button>
                         </div>
@@ -229,11 +318,11 @@ const OrderManagement = () => {
             </div>
             {pagination && pagination.pages > 1 && (
               <div className="flex items-center justify-center gap-2 p-4 border-t border-gray-100">
-                <button disabled={page <= 1} onClick={() => setPage(page - 1)} className="p-2 rounded-lg border text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+                <button type="button" disabled={page <= 1} onClick={() => setPage(page - 1)} className="p-2 rounded-lg border text-gray-600 hover:bg-gray-50 disabled:opacity-50">
                   <FiChevronLeft className="w-4 h-4" />
                 </button>
                 <span className="text-sm text-gray-600">Page {page} of {pagination.pages}</span>
-                <button disabled={page >= pagination.pages} onClick={() => setPage(page + 1)} className="p-2 rounded-lg border text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+                <button type="button" disabled={page >= pagination.pages} onClick={() => setPage(page + 1)} className="p-2 rounded-lg border text-gray-600 hover:bg-gray-50 disabled:opacity-50">
                   <FiChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -246,10 +335,15 @@ const OrderManagement = () => {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-gray-900">Order Details</h3>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    selectedOrder.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                    selectedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'
-                  }`}>{selectedOrder.status}</span>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => handlePrint(selectedOrder)} className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Print Invoice">
+                      <FiPrinter className="w-4 h-4" />
+                    </button>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      selectedOrder.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                      selectedOrder.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'
+                    }`}>{selectedOrder.status}</span>
+                  </div>
                 </div>
 
                 <div className="space-y-3 mb-4 text-sm">
@@ -343,23 +437,14 @@ const OrderManagement = () => {
                   </div>
                 </div>
 
-                {/* Print Slip Button */}
-                <button
-                  onClick={handlePrintSlip}
-                  disabled={slipLoading}
-                  className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors mb-3"
-                >
-                  <FiPrinter className="w-4 h-4" /> {slipLoading ? 'Loading...' : 'Print Slip'}
-                </button>
-
                 {/* Actions */}
                 {selectedOrder.status === 'pending' && (
                   <div className="flex gap-3">
-                    <button onClick={() => handleStatusUpdate(selectedOrder._id, 'confirmed')}
+                    <button type="button" onClick={() => handleStatusUpdate(selectedOrder._id, 'confirmed')}
                       className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
                       <FiCheck className="w-4 h-4" /> Confirm
                     </button>
-                    <button onClick={() => handleStatusUpdate(selectedOrder._id, 'rejected')}
+                    <button type="button" onClick={() => handleStatusUpdate(selectedOrder._id, 'rejected')}
                       className="flex-1 flex items-center justify-center gap-2 bg-red-500 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">
                       <FiX className="w-4 h-4" /> Reject
                     </button>
@@ -367,11 +452,11 @@ const OrderManagement = () => {
                 )}
                 {selectedOrder.status === 'confirmed' && (
                   <>
-                    <button onClick={() => handleStatusUpdate(selectedOrder._id, 'shipped')}
+                    <button type="button" onClick={() => handleStatusUpdate(selectedOrder._id, 'shipped')}
                       className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors mb-2">
                       <FiTruck className="w-4 h-4" /> Mark as Shipped
                     </button>
-                    <button onClick={() => handleStatusUpdate(selectedOrder._id, 'delivered')}
+                    <button type="button" onClick={() => handleStatusUpdate(selectedOrder._id, 'delivered')}
                       className="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
                       Mark as Delivered
                     </button>
@@ -391,178 +476,6 @@ const OrderManagement = () => {
         </div>
       </div>
 
-      {/* Print Slip Modal */}
-      {showPrintSlip && selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/50 print:bg-white print:inset-auto print:relative print:z-0 flex items-center justify-center print:block">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[400px] mx-4 print:w-[80mm] print:rounded-none print:shadow-none print:mx-auto print:p-2 overflow-y-auto max-h-[90vh] print:max-h-none">
-            {/* Close button — hidden in print */}
-            <div className="flex justify-end p-3 print:hidden">
-              <button
-                onClick={() => setShowPrintSlip(false)}
-                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"
-              >
-                <FiClose className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Receipt Content */}
-            <div className="px-4 pb-6 print:p-0">
-              {/* Shop Header */}
-              <div className="text-center border-b border-dashed border-gray-300 pb-4 mb-4">
-                <h2 className="text-lg font-bold text-gray-900">
-                  {storeInfo?.shopName || 'Prandhara Pharmacy & Healthcare'}
-                </h2>
-                <p className="text-xs text-gray-600 mt-1">
-                  {storeInfo?.shopAddress || '123, Medical Complex, Main Road, City - 123456'}
-                </p>
-                <p className="text-xs text-gray-600">
-                  📞 {storeInfo?.shopPhone || '+91 98765 43210'}
-                </p>
-                {storeInfo?.shopEmail && (
-                  <p className="text-xs text-gray-500">✉️ {storeInfo.shopEmail}</p>
-                )}
-                {storeInfo?.shopGstin && (
-                  <p className="text-xs text-gray-500">GST: {storeInfo.shopGstin}</p>
-                )}
-                {storeInfo?.shopLicense && (
-                  <p className="text-xs text-gray-500">Lic: {storeInfo.shopLicense}</p>
-                )}
-              </div>
-
-              {/* Invoice Info */}
-              <div className="text-center mb-4">
-                <h3 className="text-base font-bold text-gray-900">INVOICE</h3>
-                <p className="text-xs text-gray-600">
-                  #{selectedOrder.invoiceNumber || selectedOrder._id.slice(-8).toUpperCase()}
-                </p>
-                <p className="text-xs text-gray-500">
-                  Date: {new Date(selectedOrder.createdAt).toLocaleDateString('en-IN', {
-                    day: '2-digit', month: 'short', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
-                  })}
-                </p>
-                <span className="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-semibold capitalize bg-gray-100 text-gray-700">
-                  {selectedOrder.status}
-                </span>
-              </div>
-
-              {/* Dealer / Supplier */}
-              {(selectedOrder.dealerName || selectedOrder.dealer?.name) && (
-                <div className="mb-3 text-xs border-b border-dashed border-gray-200 pb-3">
-                  <p className="font-semibold text-gray-700">Dealer / Supplier:</p>
-                  <p className="text-gray-600">{selectedOrder.dealerName || selectedOrder.dealer?.name}</p>
-                  {selectedOrder.dealerPhone && <p className="text-gray-500">{selectedOrder.dealerPhone}</p>}
-                  {selectedOrder.dealerAddress && <p className="text-gray-500">{selectedOrder.dealerAddress}</p>}
-                </div>
-              )}
-
-              {/* Customers */}
-              {selectedOrder.customers?.length > 0 && (
-                <div className="mb-3 text-xs border-b border-dashed border-gray-200 pb-3">
-                  <p className="font-semibold text-gray-700">Customer(s):</p>
-                  {selectedOrder.customers.map((c, i) => (
-                    <p key={i} className="text-gray-600">
-                      {c.customerId || c.customer?.customerId
-                        ? `${c.customerId || c.customer?.customerId} - ${c.customerName || c.customer?.name || 'N/A'}`
-                        : c.customerName || c.customer?.name || 'Walk-in'}
-                      {c.customerPhone ? ` (${c.customerPhone})` : ''}
-                    </p>
-                  ))}
-                </div>
-              )}
-
-              {/* Items Table */}
-              <table className="w-full text-xs mb-4">
-                <thead>
-                  <tr className="border-b border-dashed border-gray-300">
-                    <th className="text-left py-1.5 font-semibold text-gray-700">#</th>
-                    <th className="text-left py-1.5 font-semibold text-gray-700">Product</th>
-                    <th className="text-center py-1.5 font-semibold text-gray-700">Qty</th>
-                    <th className="text-right py-1.5 font-semibold text-gray-700">Price</th>
-                    <th className="text-right py-1.5 font-semibold text-gray-700">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(selectedOrder.items || selectedOrder.products || []).map((item, idx) => {
-                    const price = item.sellingPrice || item.price || 0;
-                    const qty = item.quantity || 1;
-                    const total = item.totalPrice || (price * qty);
-                    return (
-                      <tr key={idx} className="border-b border-dashed border-gray-100">
-                        <td className="py-1.5 text-gray-500">{idx + 1}</td>
-                        <td className="py-1.5 text-gray-700">{item.productName || item.name || item.product?.name}</td>
-                        <td className="py-1.5 text-center text-gray-700">{qty}</td>
-                        <td className="py-1.5 text-right text-gray-700">₹{price.toLocaleString()}</td>
-                        <td className="py-1.5 text-right text-gray-700 font-medium">₹{total.toLocaleString()}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-
-              {/* Totals */}
-              <div className="border-t border-dashed border-gray-300 pt-2 text-xs space-y-1 mb-4">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
-                  <span>₹{(selectedOrder.subtotal || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>GST</span>
-                  <span>₹{(selectedOrder.totalGst || 0).toLocaleString()}</span>
-                </div>
-                {selectedOrder.discount > 0 && (
-                  <div className="flex justify-between text-red-600">
-                    <span>Discount</span>
-                    <span>-₹{selectedOrder.discount.toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-bold text-gray-900 text-sm border-t border-gray-300 pt-1 mt-1">
-                  <span>Grand Total</span>
-                  <span>₹{(selectedOrder.grandTotal || 0).toLocaleString()}</span>
-                </div>
-              </div>
-
-              {/* Payment Info */}
-              <div className="text-xs border-t border-dashed border-gray-200 pt-3 mb-4">
-                <p className="font-semibold text-gray-700 mb-1">Payment:</p>
-                {selectedOrder.payments?.length > 0 ? selectedOrder.payments.map((p, i) => (
-                  <div key={i} className="flex justify-between text-gray-600">
-                    <span className="capitalize">{p.method}</span>
-                    <span>₹{(p.amount || 0).toLocaleString()}</span>
-                  </div>
-                )) : (
-                  <p className="text-gray-500">{selectedOrder.payment?.method ? selectedOrder.payment.method : '—'}</p>
-                )}
-                <p className={`text-xs font-medium mt-1 ${selectedOrder.paymentStatus === 'paid' ? 'text-green-600' : 'text-yellow-600'}`}>
-                  {selectedOrder.paymentStatus === 'paid' ? '✓ Paid' : '⏳ Pending'}
-                </p>
-              </div>
-
-              {/* Footer */}
-              <div className="text-center text-xs text-gray-500 border-t border-dashed border-gray-300 pt-3">
-                <p className="italic">{storeInfo?.footerMessage || 'Thank you for your business!'}</p>
-                <p className="mt-1 text-[10px] text-gray-400">Powered by Prandhara ERP</p>
-              </div>
-            </div>
-
-            {/* Action Buttons — hidden in print */}
-            <div className="flex gap-3 p-4 border-t border-gray-100 print:hidden">
-              <button
-                onClick={() => setShowPrintSlip(false)}
-                className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all"
-              >
-                Close
-              </button>
-              <button
-                onClick={() => window.print()}
-                className="flex-1 px-4 py-2.5 rounded-lg bg-emerald-600 text-sm font-medium text-white hover:bg-emerald-700 transition-all shadow-sm"
-              >
-                <FiPrinter className="w-4 h-4 inline mr-1" /> Print
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

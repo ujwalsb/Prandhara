@@ -41,6 +41,38 @@ const getUserById = async (req, res, next) => {
   }
 };
 
+// @desc    Create a new manager (admin only)
+// @route   POST /api/users/create-manager
+const createManager = async (req, res, next) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required.' });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ message: 'A user with this email already exists.' });
+    }
+
+    const manager = await User.create({ name, email, password, role: 'manager' });
+
+    res.status(201).json({
+      message: 'Manager created successfully.',
+      user: {
+        id: manager._id,
+        name: manager.name,
+        email: manager.email,
+        role: manager.role,
+        createdAt: manager.createdAt,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Update user (admin)
 // @route   PUT /api/users/:id
 const updateUser = async (req, res, next) => {
@@ -91,6 +123,7 @@ const deleteUser = async (req, res, next) => {
 module.exports = {
   getUsers,
   getUserById,
+  createManager,
   updateUser,
   deleteUser,
 };

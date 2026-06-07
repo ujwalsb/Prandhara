@@ -189,7 +189,7 @@ const updateProduct = async (req, res, next) => {
     const stockChanged = 'stockQuantity' in updateData && updateData.stockQuantity !== oldProduct.stockQuantity;
 
     const product = await Product.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
+      returnDocument: 'after',
       runValidators: true,
     });
 

@@ -5,6 +5,8 @@ import { fetchProfile } from './store/slices/authSlice';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import { Agentation } from 'agentation';
+
 
 // Lazy-loaded page components for code splitting
 const Home = lazy(() => import('./pages/Home'));
@@ -21,6 +23,7 @@ const Profile = lazy(() => import('./pages/Profile'));
 const BlogList = lazy(() => import('./pages/BlogList'));
 const BlogDetail = lazy(() => import('./pages/BlogDetail'));
 const OrderDetail = lazy(() => import('./pages/OrderDetail'));
+const MyOrders = lazy(() => import('./pages/MyOrders'));
 
 // Lazy-loaded admin pages
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
@@ -36,6 +39,8 @@ const AlertManagement = lazy(() => import('./pages/admin/AlertManagement'));
 const PreOrderHistory = lazy(() => import('./pages/admin/PreOrderHistory'));
 const Earnings = lazy(() => import('./pages/admin/Earnings'));
 const MonitoringDashboard = lazy(() => import('./pages/admin/MonitoringDashboard'));
+const FundRequests = lazy(() => import('./pages/admin/FundRequests'));
+const ManagerManagement = lazy(() => import('./pages/admin/ManagerManagement'));
 
 // Minimal loading fallback — just a subtle spinner
 const PageFallback = () => (
@@ -56,6 +61,7 @@ const App = () => {
 
   return (
     <Suspense fallback={<PageFallback />}>
+       <Agentation />
       <Routes>
         <Route element={<Layout />}>
           {/* Public routes */}
@@ -75,6 +81,7 @@ const App = () => {
           <Route element={<ProtectedRoute />}>
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/my-orders" element={<MyOrders />} />
             <Route path="/orders/:id" element={<OrderDetail />} />
 
             {/* Admin routes */}
@@ -91,12 +98,15 @@ const App = () => {
               <Route path="/admin/alerts" element={<AlertManagement />} />
               <Route path="/admin/earnings" element={<Earnings />} />
               <Route path="/admin/monitoring" element={<MonitoringDashboard />} />
+              <Route path="/admin/fund-requests" element={<FundRequests />} />
               <Route path="/admin/pre-orders" element={<PreOrderHistory />} />
+              <Route path="/admin/managers" element={<ManagerManagement />} />
             </Route>
           </Route>
         </Route>
       </Routes>
     </Suspense>
+    
   );
 };
 
