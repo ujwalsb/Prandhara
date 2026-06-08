@@ -52,8 +52,8 @@ Configure these settings in the Node.js setup wizard:
 | **Application mode** | **Development** (initially, for testing) |
 | **Application root** | `/` (keep as is) |
 | **Entry file** | `backend/src/server.js` |
-| **Build command** | `cd frontend && npm install && npm run build` |
-| **Start command** | `cd backend && npm start` |
+| **Build command** | `npm run build` |
+| **Start command** | `node backend/src/server.js` |
 | **Output directory** | `frontend/dist` |
 
 ### 2.3 Connect with GitHub (Recommended)
@@ -85,7 +85,7 @@ In the **Environment Variables** section of the Node.js dashboard, add these:
 2. Hostinger will:
    - Clone your repository
    - Install backend dependencies (`cd backend && npm install`)
-   - Build the frontend (`cd frontend && npm install && npm run build`)
+   - Build the frontend (`npm run build` — runs from root package.json)
    - Start the server (`cd backend && npm start`)
 3. Wait for the deployment to finish (2-5 minutes)
 
@@ -157,7 +157,7 @@ npm run dev
 ### "Cannot GET /" (Blank Page)
 **Cause:** Frontend `dist/` folder not found.
 **Fix:**
-- Check that the build command runs successfully: `cd frontend && npm install && npm run build`
+- Check that the build command runs successfully: `npm run build` (runs from root)
 - Verify the output directory is `frontend/dist`
 
 ### API Returns 404
