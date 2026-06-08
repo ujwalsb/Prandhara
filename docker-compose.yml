@@ -10,7 +10,7 @@ services:
     env_file: ./backend/.env
     environment:
       - NODE_ENV=production
-      - MONGODB_URI=mongodb://mongo:27017/newshop20123
+      - MONGODB_URI=mongodb+srv://prandhara:ujwalsb@prandhara.czajjlq.mongodb.net/?appName=prandhara
       - CLIENT_URL=http://localhost:80
     volumes:
       - backend_uploads:/app/uploads

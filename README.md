@@ -210,7 +210,7 @@ Then edit `backend/.env` with your configuration:
 |---|---|---|
 | `PORT` | Backend server port | `5000` |
 | `NODE_ENV` | Environment mode | `development` |
-| `MONGODB_URI` | MongoDB connection string | `mongodb://localhost:27017/newshop20123` |
+| `MONGODB_URI` | MongoDB connection string | `mongodb+srv://prandhara:ujwalsb@prandhara.czajjlq.mongodb.net/?appName=prandhara` |
 | `JWT_SECRET` | Secret key for JWT signing | (change this!) |
 | `JWT_EXPIRES_IN` | JWT token expiry | `7d` |
 | `EMAIL_HOST` | SMTP host | `smtp.gmail.com` |
