@@ -202,9 +202,49 @@ if (frontendPath) {
   logger.warn('Build the frontend first: cd frontend && npm run build');
 }
 
+// Debug endpoint to check file system state on the server (disabled in production for security)
+app.get('/api/debug', (req, res) => {
+  if (config.nodeEnv === 'production' && req.query.secret !== process.env.DEBUG_SECRET) {
+    return res.status(403).json({ message: 'Not available in production. Set DEBUG_SECRET env var and pass ?secret=... to access.' });
+  }
+  const results = {};
+  for (const p of possiblePaths) {
+    let dirExists = false;
+    let indexExists = false;
+    try {
+      dirExists = fs.existsSync(p);
+      if (dirExists) {
+        indexExists = fs.existsSync(path.join(p, 'index.html'));
+      }
+    } catch (e) {
+      dirExists = false;
+    }
+    results[p] = { dirExists, indexExists };
+  }
+  let dirList = [];
+  try {
+    dirList = fs.readdirSync(process.cwd()).slice(0, 30);
+  } catch (e) {
+    dirList = ['(could not read directory)'];
+  }
+  res.json({
+    nodeEnv: config.nodeEnv,
+    cwd: process.cwd(),
+    __dirname: __dirname,
+    frontendFound: frontendPath,
+    pathChecks: results,
+    cwdContents: dirList
+  });
+});
+
 // 404 handler (only reached when frontend isn't found or for non-GET requests)
-app.use((_req, res) => {
-  res.status(404).json({ message: 'Route not found.' });
+app.use((req, res) => {
+  console.warn(`404 from ${req.method} ${req.originalUrl} (path: ${req.path})`);
+  res.status(404).json({
+    message: 'Route not found.',
+    path: req.originalUrl,
+    method: req.method
+  });
 });
 
 // Error handler
