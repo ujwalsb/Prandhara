@@ -39,6 +39,9 @@ coverage/
 *.pid
 *.seed
 *.pid.lock
+nul
+NUL
+nul.*
 
 # Debug
 npm-debug.log*
