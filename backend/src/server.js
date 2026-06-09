@@ -150,59 +150,59 @@ app.use('/api/earnings', earningsRoutes);
 app.use('/api/store-settings', storeSettingsRoutes);
 app.use('/api/fund-requests', fundRequestRoutes);
 
-// In production, serve the built React frontend (for Hostinger hPanel single-process deployment)
-if (config.nodeEnv === 'production') {
-  // Check multiple possible paths for the built frontend
-  const possiblePaths = [
-    path.resolve(__dirname, '../../frontend/dist'),
-    path.resolve(__dirname, '../public'),
-    path.resolve(__dirname, '../../dist'),
-    path.resolve(__dirname, './public'),
-  ];
+// Serve the built React frontend if it exists (regardless of NODE_ENV)
+// This ensures the app works even if the env variable isn't picked up
+const possiblePaths = [
+  path.resolve(__dirname, '../../frontend/dist'),
+  path.resolve(__dirname, '../public'),
+  path.resolve(__dirname, '../../dist'),
+  path.resolve(__dirname, './public'),
+];
 
-  let frontendPath = null;
-  for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
-      const indexPath = path.join(p, 'index.html');
-      if (fs.existsSync(indexPath)) {
-        frontendPath = p;
-        break;
-      }
+let frontendPath = null;
+for (const p of possiblePaths) {
+  if (fs.existsSync(p)) {
+    const indexPath = path.join(p, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      frontendPath = p;
+      break;
     }
-  }
-
-  if (frontendPath) {
-    logger.info(`Serving frontend static files from: ${frontendPath}`);
-
-    // Serve static assets with caching
-    app.use(express.static(frontendPath, {
-      maxAge: '1y',
-      setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.html')) {
-          res.setHeader('Cache-Control', 'no-cache');
-        }
-      },
-    }));
-
-    // SPA fallback — serve index.html for all non-API, non-upload routes
-    app.get('*', (req, res) => {
-      if (
-        req.path.startsWith('/api/') ||
-        req.path.startsWith('/uploads/') ||
-        req.path === '/api/health'
-      ) {
-        return res.status(404).json({ message: 'Route not found.' });
-      }
-      res.sendFile(path.join(frontendPath, 'index.html'));
-    });
-  } else {
-    logger.warn('No frontend build found. The React app will not be served.');
-    logger.warn('Looked in: ' + possiblePaths.join(', '));
-    logger.warn('Build the frontend first: cd frontend && npm run build');
   }
 }
 
-// 404 handler (only reached in non-production or when frontend isn't found)
+if (frontendPath) {
+  console.log(`✓ Serving frontend from: ${frontendPath}`);
+  logger.info(`Serving frontend static files from: ${frontendPath}`);
+
+  // Serve static assets with caching
+  app.use(express.static(frontendPath, {
+    maxAge: config.nodeEnv === 'production' ? '1y' : '0',
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    },
+  }));
+
+  // SPA fallback — serve index.html for all non-API, non-upload routes
+  app.get('*', (req, res) => {
+    if (
+      req.path.startsWith('/api/') ||
+      req.path.startsWith('/uploads/') ||
+      req.path === '/api/health'
+    ) {
+      return res.status(404).json({ message: 'Route not found.' });
+    }
+    res.sendFile(path.join(frontendPath, 'index.html'));
+  });
+} else {
+  console.warn('⚠️  No frontend build found. The React app will not be served.');
+  logger.warn('No frontend build found. The React app will not be served.');
+  logger.warn('Looked in: ' + possiblePaths.join(', '));
+  logger.warn('Build the frontend first: cd frontend && npm run build');
+}
+
+// 404 handler (only reached when frontend isn't found or for non-GET requests)
 app.use((_req, res) => {
   res.status(404).json({ message: 'Route not found.' });
 });
