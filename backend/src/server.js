@@ -185,16 +185,17 @@ if (frontendPath) {
   }));
 
   // SPA fallback — serve index.html for all non-API, non-upload routes
-  app.get('*', (req, res) => {
-    if (
-      req.path.startsWith('/api/') ||
-      req.path.startsWith('/uploads/') ||
-      req.path === '/api/health'
-    ) {
-      return res.status(404).json({ message: 'Route not found.' });
-    }
-    res.sendFile(path.join(frontendPath, 'index.html'));
-  });
+  app.get(/.*/, (req, res) => {
+  if (
+    req.path.startsWith('/api/') ||
+    req.path.startsWith('/uploads/') ||
+    req.path === '/api/health'
+  ) {
+    return res.status(404).json({ message: 'Route not found.' });
+  }
+
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
 } else {
   console.warn('⚠️  No frontend build found. The React app will not be served.');
   logger.warn('No frontend build found. The React app will not be served.');
