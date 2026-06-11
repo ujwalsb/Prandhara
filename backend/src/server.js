@@ -123,9 +123,27 @@ app.use(
 // Static files
 app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
-// Health check - basic
+// Track MongoDB connection status (set by connectDB or startServer)
+let mongoConnected = false;
+let mongoError = null;
+
+// Setter so db.js can update MongoDB status
+function setMongoStatus(connected, error) {
+  mongoConnected = connected;
+  mongoError = error;
+}
+
+// Health check - reports server + MongoDB status
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: mongoConnected ? 'ok' : 'degraded',
+    mongo: mongoConnected ? 'connected' : 'disconnected',
+    mongoError: mongoError,
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    nodeEnv: config.nodeEnv,
+    port: config.port,
+  });
 });
 
 // Monitoring routes (must be before 404 handler)
@@ -251,14 +269,31 @@ app.use((req, res) => {
 // Error handler
 app.use(errorHandler);
 
-// Start server
+// Start server — listens immediately, connects to MongoDB in background
+// This ensures the health endpoint responds even if MongoDB is down
 const startServer = async () => {
-  await connectDB();
+  // Start Express first
   app.listen(config.port, () => {
     console.log(`Prandhara ERP Server running on port ${config.port} in ${config.nodeEnv} mode`);
   });
+
+  // Then try connecting to MongoDB
+  try {
+    await connectDB();
+    mongoConnected = true;
+    mongoError = null;
+    console.log('✓ MongoDB connected successfully');
+  } catch (err) {
+    mongoConnected = false;
+    mongoError = err.message || 'Unknown MongoDB error';
+    console.error('❌ MongoDB connection failed:', mongoError);
+    console.error('⚠️  Server is running but database is unavailable.');
+    console.error('⚠️  Check MONGODB_URI environment variable and network access.');
+    // Don't crash — keep server running so /api/health returns diagnostics
+  }
 };
 
-startServer().catch(console.error);
+startServer();
 
 module.exports = app;
+module.exports.setMongoStatus = setMongoStatus;

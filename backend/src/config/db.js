@@ -32,11 +32,15 @@ const connectDB = async () => {
       logger.info('MongoDB reconnected');
     });
   } catch (error) {
+    const maskedUri = config.mongodbUri
+      ? config.mongodbUri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')
+      : '(not set)';
     logger.error('MongoDB initial connection failed', {
       error: error.message,
-      uri: config.mongodbUri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@'),
+      uri: maskedUri,
     });
-    process.exit(1);
+    // Re-throw so server.js can handle it gracefully
+    throw error;
   }
 };
 
