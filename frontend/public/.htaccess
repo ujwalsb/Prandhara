@@ -1,0 +1,89 @@
+# =====================================================
+# Prandhara ERP - SPA & API Routing (Hostinger hPanel)
+# =====================================================
+# This file is placed in frontend/public/ so Vite
+# automatically copies it to the build output (dist/)
+# during "npm run build".
+#
+# This ensures:
+# 1. SPA routes (like /login, /shop, /cart) serve
+#    index.html on refresh instead of 404
+# 2. API requests (/api/*) pass through to the
+#    Node.js backend
+# 3. Existing static assets are served directly
+# =====================================================
+
+# Disable directory listing
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # 1. Do NOT rewrite API requests — let them reach the Node.js backend
+  RewriteRule ^api/ - [L]
+
+  # 2. Do NOT rewrite uploads
+  RewriteRule ^uploads/ - [L]
+
+  # 3. Do NOT rewrite existing files or directories
+  #    (CSS, JS, images, fonts, etc.)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule . - [L]
+
+  # 4. Rewrite everything else to index.html (SPA fallback)
+  #    React Router takes over client-side routing from here
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# =====================================================
+# Deny access to sensitive files
+# =====================================================
+
+# Block all dot-files (.env, .git, .htaccess itself, etc.)
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+# Block access to package files and node_modules (defense in depth)
+<FilesMatch "(package\.json|package-lock\.json|node_modules|composer\.json|composer\.lock)">
+  Require all denied
+</FilesMatch>
+
+# =====================================================
+# Security Headers
+# =====================================================
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-XSS-Protection "1; mode=block"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# =====================================================
+# Browser Caching for Performance
+# =====================================================
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # HTML: no cache (SPA needs fresh content on each visit)
+  ExpiresByType text/html "access plus 0 seconds"
+
+  # CSS, JS: cache for 1 year (Vite fingerprinted filenames)
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+
+  # Images: cache for 1 year
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/gif "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+
+  # Fonts: cache for 1 year
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType font/woff "access plus 1 year"
+</IfModule>
