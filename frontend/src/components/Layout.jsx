@@ -139,9 +139,9 @@ const Layout = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2">
               <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                Prandhara
+                Praandhara
               </span>
-              <span className="hidden sm:inline text-xs text-gray-400 font-medium">Riyansh Store</span>
+              <span className="hidden sm:inline text-xs text-gray-400 font-medium">The Riyansh Store</span>
             </Link>
 
             {/* Desktop Nav */}
@@ -486,7 +486,7 @@ const Layout = () => {
             <div>
               <h3 className="text-lg font-bold text-white mb-4">Prandhara</h3>
               <p className="text-sm text-gray-400">
-                Your trusted store for quality healthcare products and medicines.
+                Your trusted Riyansh store for quality healthcare products.
               </p>
             </div>
             <div>
@@ -501,8 +501,8 @@ const Layout = () => {
             <div>
               <h4 className="font-semibold text-white mb-3">Contact</h4>
               <ul className="space-y-2 text-sm">
-                <li>📞 +91 9028 406729</li>
-                <li>📧 prandhar11@gmail.com</li>
+                <li>📞 +91 76203 46966</li>
+                <li>📧 sanjayhole2667@gmail.com</li>
                 <li>📍 Grand Centrel Pune-Nashik Highway Chakan.</li>
               </ul>
             </div>
@@ -516,7 +516,7 @@ const Layout = () => {
                   <span className="sr-only">Instagram</span>📷
                 </a>
                 <a href="#" className="p-2 bg-gray-800 rounded-lg hover:bg-emerald-600 transition-colors">
-                  <span className="sr-only">YouTube</span>▶️
+                  <span className="sr-only">YouTube</span>▶
                 </a>
               </div>
             </div>
