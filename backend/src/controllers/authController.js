@@ -19,12 +19,15 @@ const register = async (req, res, next) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      logger.warn('Registration attempt with existing email', { email });
       return res.status(409).json({ message: 'Email already registered.' });
     }
 
     const user = await User.create({ name, email, password });
     const verificationToken = user.generateVerificationToken();
     await user.save();
+
+    logger.info('User registered successfully', { userId: user._id, email: user.email });
 
     // Send verification email (non-blocking)
     sendVerificationEmail(user, verificationToken).catch((err) =>
@@ -49,6 +52,7 @@ const register = async (req, res, next) => {
       },
     });
   } catch (error) {
+    logger.error('Registration error', { error: error.message, email: req.body?.email });
     next(error);
   }
 };
@@ -61,11 +65,13 @@ const login = async (req, res, next) => {
 
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
+      logger.warn('Login attempt with non-existent email', { email });
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      logger.warn('Login attempt with incorrect password', { email });
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
@@ -73,6 +79,8 @@ const login = async (req, res, next) => {
     const refreshToken = generateRefreshToken();
     user.refreshToken = refreshToken;
     await user.save();
+
+    logger.info('User logged in successfully', { userId: user._id, email: user.email });
 
     res.json({
       message: 'Login successful.',
@@ -88,6 +96,7 @@ const login = async (req, res, next) => {
       },
     });
   } catch (error) {
+    logger.error('Login error', { error: error.message, email: req.body?.email });
     next(error);
   }
 };

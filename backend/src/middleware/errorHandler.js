@@ -40,7 +40,11 @@ const errorHandler = (err, req, res, _next) => {
   // Mongoose validation error
   if (err.name === 'ValidationError') {
     const messages = Object.values(err.errors).map((e) => e.message);
-    return res.status(400).json({ message: 'Validation error', errors: messages });
+    return res.status(400).json({ 
+      message: 'Validation error',
+      errors: messages,
+      details: process.env.NODE_ENV !== 'production' ? err.errors : undefined 
+    });
   }
 
   // Mongoose duplicate key error
@@ -72,7 +76,13 @@ const errorHandler = (err, req, res, _next) => {
   const message = process.env.NODE_ENV === 'production' && statusCode === 500
     ? 'Internal server error'
     : (err.message || 'Internal server error');
-  res.status(statusCode).json({ message });
+  
+  const response = { message };
+  if (process.env.NODE_ENV !== 'production') {
+    response.error = err.message;
+    response.status = statusCode;
+  }
+  res.status(statusCode).json(response);
 };
 
 module.exports = errorHandler;

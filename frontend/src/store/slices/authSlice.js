@@ -22,7 +22,9 @@ export const registerUser = createAsyncThunk(
       localStorage.setItem('user', JSON.stringify(data.user));
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Registration failed');
+      const errorMessage = error.response?.data?.message || error.response?.data?.errors?.[0] || error.message || 'Registration failed';
+      console.error('Registration error:', errorMessage, error);
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -37,7 +39,9 @@ export const loginUser = createAsyncThunk(
       localStorage.setItem('user', JSON.stringify(data.user));
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Login failed');
+      const errorMessage = error.response?.data?.message || error.response?.data?.errors?.[0] || error.message || 'Login failed';
+      console.error('Login error:', errorMessage, error);
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -60,10 +64,12 @@ export const fetchProfile = createAsyncThunk('auth/fetchProfile', async (_, { re
     localStorage.setItem('user', JSON.stringify(data.user));
     return data;
   } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Session expired';
+    console.error('Fetch profile error:', errorMessage, error);
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
-    return rejectWithValue(error.response?.data?.message || 'Session expired');
+    return rejectWithValue(errorMessage);
   }
 });
 

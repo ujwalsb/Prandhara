@@ -14,7 +14,7 @@ const mongodbUri = (() => {
     process.exit(1);
   }
   console.warn('⚠️  WARNING: MONGODB_URI not set. Using localhost fallback for development only.');
-  return 'mongodb://localhost:27017/newshop20123';
+  return 'mongodb+srv://ujwal123:ujwalsb@cluster0.zzzjvfw.mongodb.net/?appName=Cluster0';
 })();
 
 const jwtSecret = (() => {

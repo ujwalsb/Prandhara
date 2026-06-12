@@ -4,8 +4,17 @@ import axios from 'axios';
 const requestCache = new Map();
 const pendingRequests = new Map();
 
+// Determine API URL - in production use VITE_API_URL, otherwise use /api proxy for dev
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // Development: use /api proxy (configured in vite.config.js)
+  return '/api';
+};
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -94,6 +103,23 @@ apiClient.interceptors.response.use(
     // Clean up pending request
     if (cacheKey) {
       pendingRequests.delete(cacheKey);
+    }
+
+    // Enhanced error logging for debugging
+    if (error.response) {
+      console.error('API Error Response:', {
+        status: error.response.status,
+        data: error.response.data,
+        url: originalRequest?.url,
+      });
+    } else if (error.request) {
+      console.error('API No Response:', {
+        request: error.request,
+        message: error.message,
+        url: originalRequest?.url,
+      });
+    } else {
+      console.error('API Error:', error.message);
     }
 
     // Skip refresh logic for auth endpoints to prevent infinite 401 loops
