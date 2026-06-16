@@ -1,41 +1,15 @@
 # =====================================================
-# Prandhara ERP - SPA & API Routing (Hostinger hPanel)
+# Prandhara ERP - Static asset headers only (Hostinger)
 # =====================================================
-# This file is placed in frontend/public/ so Vite
-# automatically copies it to the build output (dist/)
-# during "npm run build".
-#
-# This ensures:
-# 1. SPA routes (like /login, /shop, /cart) serve
-#    index.html on refresh instead of 404
-# 2. API requests (/api/*) pass through to the
-#    Node.js backend
-# 3. Existing static assets are served directly
+# Rewrite rules removed — the Express server handles
+# both API routing and SPA fallback. Hostinger's
+# Node.js reverse proxy forwards requests to Express.
+# Leaving rewrite rules here can cause 404s on API
+# calls by interfering with the proxy.
 # =====================================================
 
 # Disable directory listing
 Options -Indexes
-
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-
-  # 1. Do NOT rewrite API requests — let them reach the Node.js backend
-  RewriteRule ^api/ - [L]
-
-  # 2. Do NOT rewrite uploads
-  RewriteRule ^uploads/ - [L]
-
-  # 3. Do NOT rewrite existing files or directories
-  #    (CSS, JS, images, fonts, etc.)
-  RewriteCond %{REQUEST_FILENAME} -f [OR]
-  RewriteCond %{REQUEST_FILENAME} -d
-  RewriteRule . - [L]
-
-  # 4. Rewrite everything else to index.html (SPA fallback)
-  #    React Router takes over client-side routing from here
-  RewriteRule . /index.html [L]
-</IfModule>
 
 # =====================================================
 # Deny access to sensitive files
@@ -46,7 +20,7 @@ Options -Indexes
   Require all denied
 </FilesMatch>
 
-# Block access to package files and node_modules (defense in depth)
+# Block access to package files and node_modules
 <FilesMatch "(package\.json|package-lock\.json|node_modules|composer\.json|composer\.lock)">
   Require all denied
 </FilesMatch>
