@@ -13,7 +13,7 @@ const mongodbUri = (() => {
     console.error('❌ CRITICAL: MONGODB_URI is required in production. Set it in your .env file.');
     process.exit(1);
   }
-  console.warn('⚠️  WARNING: MONGODB_URI not set. Using localhost fallback for development only.');
+  console.warn('⚠️  WARNING: MONGODB_URI not set. Using fallback Atlas URI for development only.');
   return 'mongodb+srv://ujwal123:ujwalsb@cluster0.zzzjvfw.mongodb.net/?appName=Cluster0';
 })();
 
