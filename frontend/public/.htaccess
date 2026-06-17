@@ -1,12 +1,30 @@
 # =====================================================
-# Prandhara ERP - Static asset headers only (Hostinger)
+# Prandhara ERP - SPA + Static asset config (Hostinger)
 # =====================================================
-# Rewrite rules removed — the Express server handles
-# both API routing and SPA fallback. Hostinger's
-# Node.js reverse proxy forwards requests to Express.
-# Leaving rewrite rules here can cause 404s on API
-# calls by interfering with the proxy.
+# Rewrite rules enable SPA fallback so refreshing any
+# route serves index.html and lets React handle routing.
+# API calls are explicitly excluded from the rewrite so
+# they pass through to the backend (or return a clean
+# JSON 404 if backend is down, instead of the HTML page).
 # =====================================================
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # If the requested file or directory exists, serve it directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Do NOT rewrite API calls — let them return proper JSON 404
+  RewriteCond %{REQUEST_URI} ^/api/ [OR]
+  RewriteCond %{REQUEST_URI} ^/uploads/
+  RewriteRule ^ - [L]
+
+  # SPA fallback — all other routes serve index.html
+  RewriteRule ^ /index.html [L]
+</IfModule>
 
 # Disable directory listing
 Options -Indexes
