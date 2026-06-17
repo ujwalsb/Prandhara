@@ -1,7 +1,16 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authApi } from '../../api/auth';
 
-const user = JSON.parse(localStorage.getItem('user'));
+let user = null;
+try {
+  const storedUser = localStorage.getItem('user');
+  if (storedUser) {
+    user = JSON.parse(storedUser);
+  }
+} catch {
+  // Corrupted user data in localStorage — ignore
+  localStorage.removeItem('user');
+}
 const token = localStorage.getItem('token');
 
 const initialState = {
